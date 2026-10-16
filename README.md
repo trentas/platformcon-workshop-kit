@@ -10,7 +10,7 @@ São três estações:
 | 2. Verificações de CI para código escrito por agentes | Demonstração | Telão |
 | 3. Comparação de versões com eBPF (ptop) | Captura de duas versões de um serviço e comparação contra o ruído | Na sua máquina Linux ou VM |
 
-> **Estado do kit:** a estação 3 está pronta e testada (arm64, kernel 7.0). As estações 1 e 2 estão em construção.
+> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0); a 1 e a 2, com sessões simuladas. Falta testar o avaliador contra o modelo e a estação 1 com agentes de verdade.
 
 ## Antes do workshop: o preflight
 
@@ -99,9 +99,41 @@ Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request 
 - Uma métrica que não pôde ser medida aparece como `não medido`, nunca como zero.
 - Uma diferença é marcada quando passa o dobro da variação entre `v1-a` e `v1-b` e também um piso: 5% (ou 0,02 por request) nas syscalls e 10% na latência, porque o histograma de latência tem resolução de 5%.
 
+## Estação 1: agentes como usuários de um servidor MCP (lado do instrutor)
+
+O servidor de exemplo se chama `plataforma` e tem quatro tools: `listar_servicos`, `listar_deploys`, `buscar_erros` e `status_fontes`. A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, a mesma lista vazia vem com `"fontes": {"logs": "indisponivel"}`.
+
+```bash
+make servidor                 # sobe em http://127.0.0.1:3000/mcp; painel em /painel (ADMIN_TOKEN padrão: dev)
+make simular SESSOES=20       # ensaio: 20 sessões simuladas, com as três formas
+curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'content-type: application/json' \
+     -d '{"versao":"v2"}' http://127.0.0.1:3000/admin/versao      # troca a versão no ar
+make avaliar VERSAO=v1        # rascunho de issue sobre as sessões da v1 (precisa de ANTHROPIC_API_KEY)
+make avaliar VERSAO=v1 SECO=1 # só o observado, sem chamar o modelo
+```
+
+- **O trace** (`traces/sala.jsonl`) tem uma linha por chamada: tool, argumentos estruturados, status, quantidade de itens, fontes declaradas como não lidas, ordem e duração. Argumento de texto livre vira tamanho e hash. O servidor nunca vê o prompt nem a resposta do agente.
+- **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da lista vazia: parou, conferiu a fonte ou procurou outra explicação. Uma sessão conta como encerrada depois de 30 s sem chamada.
+- **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
+
+Para publicar o servidor: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio PORT=3000 ADMIN_TOKEN=... node servidor/index.ts`, atrás de um proxy com TLS. Requer Node 22.18 ou mais novo (roda o TypeScript direto).
+
+## Estação 2: verificações de CI para código escrito por agentes
+
+```bash
+make guardas
+```
+
+`guardas/catch-vazio.ts` varre `servidor/tools` e recusa todo `catch` que devolve lista vazia sem declarar a fonte que falhou (`semFonte(...)`, em `servidor/fontes.ts`). A exceção, quando é de propósito, fica escrita no código com o comentário `guarda:catch-vazio-proposital` e aparece no relatório: é o caso da v1 de `buscar_erros`.
+
+A guarda tem a sua própria guarda: o relatório falha se a varredura não leu nenhum arquivo, e o teste (`guardas/catch-vazio.test.ts`) confere que a regra reconhece o padrão proibido num exemplo e ignora o padrão dentro de comentário.
+
 ## Estrutura
 
 ```
+servidor/            servidor MCP de exemplo, gravador de trace, painel e simulador de sala
+avaliador/           rubrica e avaliador dos traces
+guardas/             a verificação de CI da estação 2 e os testes dela
 estacao3/servico     api e estoque, v1 e v2
 estacao3/carga       gerador de carga com log de contadores acumulados
 estacao3/comparar    comparação de duas capturas, por request, contra o ruído

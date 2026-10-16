@@ -4,3 +4,6 @@
 /preflight-resultado.txt
 # as capturas feitas na sua máquina; as de reserva ficam em capturas/prontas/
 /capturas/*.jsonl
+/traces/
+/avaliador/saida/
+/node_modules/

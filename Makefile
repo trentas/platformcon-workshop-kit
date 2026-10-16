@@ -9,7 +9,7 @@ RPS      ?= 50
 # Com A=v1-a e uma captura v1-b no disco, a comparação mede o ruído contra ela.
 RUIDO ?= $(if $(filter-out v1-b,$(B)),$(if $(wildcard capturas/v1-b.jsonl),v1-b,),)
 
-.PHONY: preflight build subir v1 v2 acompanhar parar captura comparar limpar
+.PHONY: preflight build subir v1 v2 acompanhar parar captura comparar limpar servidor simular avaliar guardas checar
 
 preflight:
 	@./preflight.sh
@@ -68,3 +68,25 @@ comparar: build
 
 limpar: parar
 	rm -rf run ptop-events-*.jsonl
+
+# --- estação 1: o servidor MCP de exemplo, o painel e o avaliador (lado do instrutor)
+
+servidor:
+	@ADMIN_TOKEN=$${ADMIN_TOKEN:-dev} node servidor/index.ts
+
+simular:
+	@node servidor/simular-sala.ts --url $${URL:-http://127.0.0.1:3000/mcp} --sessoes $${SESSOES:-12}
+
+# make avaliar VERSAO=v1 [SECO=1]
+avaliar:
+	@node avaliador/avaliar.ts --traces $${TRACES:-traces/sala.jsonl} --versao $${VERSAO:-v1} $(if $(SECO),--seco,)
+
+# --- estação 2: a verificação de CI e a guarda da guarda
+
+guardas:
+	@node guardas/rodar.ts servidor/tools
+	@npx vitest run guardas --reporter=dot
+
+checar: guardas
+	@npx tsc --noEmit
+	@go vet ./...
