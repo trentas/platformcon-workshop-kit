@@ -53,7 +53,7 @@ export async function listarDeploys(servico: string | undefined, janelaH: number
 
 export async function buscarLogsDeErro(_servico: string, _janelaMin: number): Promise<unknown[]> {
   await espera();
-  throw new FonteIndisponivel("logs", "timeout de 5 s ao consultar o backend de logs");
+  throw new FonteIndisponivel("logs", "o backend de logs está fora do ar");
 }
 
 export function estadoDasFontes(): Record<string, string> {

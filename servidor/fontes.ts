@@ -13,5 +13,7 @@ export type FontesNaoLidas = { fontes: Record<string, string>; aviso: string };
 
 export function semFonte(fonte: string, erro: unknown): FontesNaoLidas {
   const motivo = erro instanceof Error ? erro.message : String(erro);
-  return { fontes: { [fonte]: "indisponivel" }, aviso: `${fonte} não lidos: ${motivo}` };
+  // "repetir não resolve": com "timeout" no aviso, os agentes testados liam a
+  // falha como passageira e repetiam a consulta.
+  return { fontes: { [fonte]: "indisponivel" }, aviso: `${fonte} não lidos: ${motivo}; repetir a consulta não resolve` };
 }

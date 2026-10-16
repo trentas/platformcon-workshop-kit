@@ -14,7 +14,7 @@
 // cada 2 s, e por um túnel com cota (o ngrok gratuito tem 20 mil requisições por
 // mês) meia sala com o painel aberto esgotaria a cota no meio da estação.
 //
-// Variáveis: PORT (3000), HOST (127.0.0.1), ALLOWED_HOSTS (lista separada por
+// Variáveis: TOOLS_OCULTAS (status_fontes), PORT (3000), HOST (127.0.0.1), ALLOWED_HOSTS (lista separada por
 // vírgula, com o domínio público; os nomes locais seguem aceitos), PAINEL_PORT
 // (3001), PAINEL_HOST (127.0.0.1), VERSAO (v1), TRACES (traces/sala.jsonl),
 // ADMIN_TOKEN (sem ele, as rotas de admin respondem 503).
@@ -44,9 +44,11 @@ const MAX_SESSOES = 500;
 const SESSAO_OCIOSA_MS = 30 * 60_000;
 
 const estado: { versao: Versao } = { versao: process.env.VERSAO === "v2" ? "v2" : "v1" };
-// Tools que o servidor não anuncia (ex.: TOOLS_OCULTAS=status_fontes): sem como
-// conferir a fonte, o agente só tem a resposta de buscar_erros para decidir.
-const OCULTAS = new Set((process.env.TOOLS_OCULTAS ?? "").split(",").map((s) => s.trim()).filter(Boolean));
+// Tools que o servidor não anuncia. Por padrão, status_fontes: com ela, os agentes
+// testados conferiam a fonte e contornavam o defeito (15 de 15 sessões), e a
+// estação não teria o que mostrar. Sem ela, o agente só tem a resposta de
+// buscar_erros para decidir. TOOLS_OCULTAS= (vazio) anuncia todas.
+const OCULTAS = new Set((process.env.TOOLS_OCULTAS ?? "status_fontes").split(",").map((s) => s.trim()).filter(Boolean));
 const gravador = new Gravador(process.env.TRACES ?? "traces/sala.jsonl");
 
 function criarServidor(): McpServer {

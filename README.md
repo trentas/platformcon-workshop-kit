@@ -101,7 +101,7 @@ Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request 
 
 ## Estação 1: agentes como usuários de um servidor MCP (lado do instrutor)
 
-O servidor de exemplo se chama `plataforma` e tem quatro tools: `listar_servicos`, `listar_deploys`, `buscar_erros` e `status_fontes`. A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
+O servidor de exemplo se chama `plataforma` e anuncia três tools: `listar_servicos`, `listar_deploys` e `buscar_erros`. Uma quarta, `status_fontes`, existe e fica oculta por padrão (`TOOLS_OCULTAS`; ver os resultados abaixo). A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
 
 ```bash
 make servidor                 # MCP em http://127.0.0.1:3000/mcp; painel só local em http://127.0.0.1:3001/painel (ADMIN_TOKEN padrão: dev)
@@ -134,9 +134,12 @@ O plano gratuito do ngrok tem um domínio fixo por conta e 20 mil requisições 
 | Servidor | v1 (lista vazia) | v2 (`null` com a fonte declarada) |
 |---|---|---|
 | Com `status_fontes` anunciada | 9 de 9 chamaram `status_fontes` e responderam que não dava para saber | 6 de 6 também acertaram; as sessões não ficaram mais curtas |
-| Sem `status_fontes` | 3 de 3 responderam que não houve erros | 3 de 3 responderam que não conseguiram saber |
+| Sem `status_fontes`, aviso com "timeout" | 3 de 3 responderam que não houve erros | 3 de 3 responderam que não conseguiram saber, repetindo a consulta |
+| **Padrão do kit:** sem `status_fontes`, aviso "repetir a consulta não resolve" | **6 de 6 responderam que não houve erros** | **6 de 6 responderam que não conseguiram verificar**, sem repetir |
 
-Com uma tool para conferir a fonte, os agentes testados contornaram o defeito; sem ela, a resposta deles dependeu só do que `buscar_erros` disse. O avaliador recebe, além dos traces, o estado das fontes na telemetria da plataforma, que o agente não vê: é assim que ele acha o sinal falso mesmo quando nenhuma sessão conferiu a fonte.
+Com uma tool para conferir a fonte, os agentes testados contornaram o defeito; sem ela, a resposta deles dependeu só do que `buscar_erros` disse. O avaliador recebe, além dos traces, o estado das fontes na telemetria da plataforma, que o agente não vê: é assim que ele acha o sinal falso mesmo quando nenhuma sessão conferiu a fonte. Nas sessões do padrão do kit, ele apontou `sinal_falso` na v1 (confiança alta) e "nenhum achado" na v2.
+
+Só agentes Claude foram testados até aqui.
 
 ## Estação 2: verificações de CI para código escrito por agentes
 

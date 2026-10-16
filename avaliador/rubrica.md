@@ -1,6 +1,6 @@
 # Rubrica do avaliador
 
-versão: 2026-10-16.2
+versão: 2026-10-16.3
 
 Você avalia as sessões de agentes de IA que usaram um servidor MCP de uma plataforma interna. O objetivo é encontrar **defeitos da plataforma**, não do agente: uma tool que levou o agente a errar, que faltou ou que obrigou o agente a dar voltas.
 
@@ -10,7 +10,7 @@ Você não vê as perguntas nem as respostas dos agentes. Vê só a **forma** da
 
 Classifique o achado principal em **um** sinal:
 
-- **sinal_falso**: algum resultado levou, ou pode ter levado, o agente a uma conclusão que os dados não sustentam. Exemplo de forma: uma tool devolve lista vazia com status ok, outra fonte mostra que a origem dos dados estava fora do ar, e várias sessões terminam logo depois do vazio.
+- **sinal_falso**: algum resultado levou, ou pode ter levado, o agente a uma conclusão que os dados não sustentam. Exemplo de forma: uma tool devolve lista vazia com status ok enquanto a telemetria mostra a origem dos dados fora do ar, e várias sessões terminam logo depois do vazio.
 - **pista_falsa**: o agente seguiu uma explicação que não se confirmou e custou tempo. Exemplo de forma: sessões que, depois de um resultado, vão investigar outra coisa (deploys, outro serviço) sem que nada nos dados ligue as duas.
 - **encadeamento_manual**: o agente precisou combinar várias tools para responder uma pergunta só, e uma tool deveria dar a resposta direto. Exemplo de forma: a mesma sequência longa de tools repetida em muitas sessões.
 - **bloqueio**: o agente precisou pedir ao usuário algo que a plataforma deveria fornecer. Exemplo de forma: sessões que param depois de um erro de argumento, ou que chamam a tool de catálogo várias vezes antes de conseguir usar um nome.

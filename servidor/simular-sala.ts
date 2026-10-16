@@ -50,8 +50,9 @@ for (let i = 0; i < total; i++) {
   const transporte = new StreamableHTTPClientTransport(url);
   await cliente.connect(transporte);
   const { tools } = await cliente.listTools();
-  if (tools.length !== 4) throw new Error(`esperava 4 tools, vieram ${tools.length}`);
-  for (const p of forma.passos) {
+  const anunciadas = new Set(tools.map((t) => t.name));
+  if (!anunciadas.has("buscar_erros")) throw new Error("o servidor não anunciou buscar_erros");
+  for (const p of forma.passos.filter((p) => anunciadas.has(p.tool))) {
     await cliente.callTool({ name: p.tool, arguments: p.args ?? {} });
   }
   await transporte.terminateSession();

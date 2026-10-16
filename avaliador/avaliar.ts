@@ -63,9 +63,11 @@ function observar(sessoes: Sessao[]): string[] {
     `${semLeitura.length} dessas respostas eram erros: null com a fonte declarada como não lida`,
     `${declarado.length} de ${comVazio.length} respostas sem erros declararam a fonte não lida (campo fontes)`,
     `${s(pararam.length)} terminaram sem outra chamada depois dessa resposta`,
-    `status_fontes foi chamada em ${s(conferiram.length)}; em ${fonteFora.length} delas devolveu logs como não ok`,
-    `${s(deploys.length)} seguiram para listar_deploys depois dessa resposta, sem chamar status_fontes`,
+    `${s(deploys.length)} seguiram para listar_deploys depois dessa resposta`,
   ];
+  if (conferiram.length) {
+    linhas.push(`status_fontes foi chamada em ${s(conferiram.length)}; em ${fonteFora.length} delas devolveu logs como não ok`);
+  }
   if (andamento.length) linhas.push(`${s(andamento.length)} ainda em andamento na leitura`);
   // A telemetria da própria plataforma, que o agente não vê: o avaliador cruza
   // os traces com o estado das fontes no período. Numa plataforma real, isto
