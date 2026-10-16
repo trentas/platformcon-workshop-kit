@@ -86,16 +86,26 @@ async function perguntar(observado: string[], fs: ReturnType<typeof formas>): Pr
     formas_mais_comuns: fs,
   };
   const cliente = new Anthropic();
+  // Saída estruturada por json_schema (output_config.format): o modelo responde
+  // um JSON nesta forma. O schema não leva restrição numérica nem de tamanho, e
+  // todo objeto fecha com additionalProperties: false, que é o que a API aceita.
   const msg = await cliente.messages.create({
     model: modelo,
-    max_tokens: 2000,
+    max_tokens: 4000,
+    thinking: { type: "adaptive" },
     system: rubrica,
-    tools: [
+    messages: [
       {
-        name: "rascunho",
-        description: "Registra o rascunho de issue sobre a plataforma.",
-        input_schema: {
+        role: "user",
+        content: `Avalie as sessões da sala e devolva o rascunho.\n\n<dados_da_sala>\n${JSON.stringify(dados, null, 2)}\n</dados_da_sala>`,
+      },
+    ],
+    output_config: {
+      format: {
+        type: "json_schema",
+        schema: {
           type: "object",
+          additionalProperties: false,
           properties: {
             sinal: { type: "string", enum: ["sinal_falso", "pista_falsa", "encadeamento_manual", "bloqueio", "nenhum"] },
             titulo: { type: "string", description: "uma linha, descrevendo o defeito da plataforma" },
@@ -107,18 +117,12 @@ async function perguntar(observado: string[], fs: ReturnType<typeof formas>): Pr
           required: ["sinal", "titulo", "hipotese", "confirmaria", "como_saber_que_fechou", "confianca_no_achado"],
         },
       },
-    ],
-    tool_choice: { type: "tool", name: "rascunho" },
-    messages: [
-      {
-        role: "user",
-        content: `Avalie as sessões da sala e registre o rascunho.\n\n<dados_da_sala>\n${JSON.stringify(dados, null, 2)}\n</dados_da_sala>`,
-      },
-    ],
+    },
   });
-  const uso = msg.content.find((b) => b.type === "tool_use");
-  if (!uso || uso.type !== "tool_use") throw new Error("o modelo não registrou o rascunho");
-  return uso.input as Rascunho;
+  if (msg.stop_reason === "refusal") throw new Error("o modelo recusou a avaliação");
+  const texto = msg.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+  if (!texto) throw new Error(`resposta sem JSON (stop_reason=${msg.stop_reason})`);
+  return JSON.parse(texto) as Rascunho;
 }
 
 function markdown(r: Rascunho | null, observado: string[], total: number): string {
