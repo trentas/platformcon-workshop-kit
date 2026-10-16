@@ -65,7 +65,7 @@ func main() {
 	recusa := false
 	for _, outra := range pares {
 		if dif := diferencasDeColetor(ca, outra); len(dif) > 0 {
-			fmt.Printf("coletores com estado diferente entre %s e %s:\n", ca.nome, outra.nome)
+			fmt.Printf("coletores diferentes entre %s e %s:\n", ca.nome, outra.nome)
 			for _, l := range dif {
 				fmt.Println("  " + l)
 			}
@@ -73,7 +73,8 @@ func main() {
 		}
 	}
 	if recusa {
-		fmt.Println("\nnúmeros não comparados: a diferença pode ser só de instrumentação.")
+		fmt.Println("\nnúmeros não comparados:")
+		fmt.Println("a diferença entre as capturas pode ser só de instrumentação.")
 		os.Exit(3)
 	}
 	if !ca.temProbes || !cb.temProbes {
@@ -386,7 +387,7 @@ func diferencasDeColetor(a, b *captura) []string {
 	for _, n := range ord {
 		pa, pb := a.probes[n], b.probes[n]
 		if pa != pb {
-			out = append(out, fmt.Sprintf("%-10s %s: %-16s %s: %s", n, a.nome, pa.descreve(), b.nome, pb.descreve()))
+			out = append(out, fmt.Sprintf("%-9s %s: %-14s %s: %s", n, a.nome, pa.descreve(), b.nome, pb.descreve()))
 		}
 	}
 	return out
