@@ -1,0 +1,6 @@
+/bin/
+/run/
+/ptop-events-*.jsonl
+/preflight-resultado.txt
+# as capturas feitas na sua máquina; as de reserva ficam em capturas/prontas/
+/capturas/*.jsonl
