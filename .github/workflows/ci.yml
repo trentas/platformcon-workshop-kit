@@ -70,6 +70,8 @@ jobs:
         run: |
           (cd dist && exec python3 -m http.server 8765 --bind 127.0.0.1 > /dev/null 2>&1 &)
           export PATH="$(echo "$PATH" | tr ':' '\n' | grep -vi go | paste -sd:)"
+          # A imagem do runner também traz um Go em /usr/bin; a VM é descartável.
+          while command -v go > /dev/null; do sudo mv "$(command -v go)" "$(mktemp -u /tmp/go-oculto-XXXX)"; hash -r; done
           if command -v go; then echo "o Go ainda está no PATH: o teste não vale"; exit 1; fi
           for i in $(seq 20); do curl -sf http://127.0.0.1:8765/SHA256SUMS > /dev/null && break; sleep 0.5; done
           rm -rf bin
