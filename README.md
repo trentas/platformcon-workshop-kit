@@ -117,6 +117,16 @@ setsockopt() por request    0,00    5,01    +5,00       0,00    acima do ruído
 
 Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request passou a abrir e fechar uma conexão.
 
+Numa VM amd64 limpa (o job sob demanda do CI: Ubuntu 24.04, kernel 6.17, capturas de 30 s), connect, socket, close, setsockopt e epoll_ctl mudam do mesmo jeito, e a latência fica dentro do ruído. Três syscalls do runtime do Go também passam do ruído:
+
+```
+nanosleep() por request     6,32    10,22   +3,90       0,16    acima do ruído
+futex() por request         12,87   15,98   +3,11       0,06    acima do ruído
+epoll_pwait() por request   5,36    7,88    +2,51       0,04    acima do ruído
+```
+
+Elas não apareceram na máquina arm64. Quem roda em amd64 deve ver essas linhas também.
+
 ### Como a comparação conta
 
 - A janela de uma captura vai do primeiro ao último snapshot de syscalls do ptop. Os requests dessa janela vêm do log da carga, interpolado nos dois instantes.

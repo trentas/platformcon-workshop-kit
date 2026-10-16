@@ -96,6 +96,7 @@ func main() {
 	if cr != nil {
 		mr = cr.metricas()
 	}
+	completarSyscalls(ma, mb, mr)
 	nomes := escolherMetricas(ma, mb)
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
@@ -333,6 +334,39 @@ func (c *captura) metricas() map[string]float64 {
 		out["sys:"+n] = d / req
 	}
 	return out
+}
+
+// completarSyscalls: uma syscall que aparece numa captura e não em outra, com o
+// coletor de syscalls ativo nas duas, foi chamada zero vezes na segunda. Sem
+// isto, a syscall que só a v2 faz ficava fora da tabela, porque a escolha das
+// métricas parte das que existem em A. Captura sem dado de syscall (coletor
+// parado) não ganha zeros: lá continua "não medido".
+func completarSyscalls(ms ...map[string]float64) {
+	comDado := func(m map[string]float64) bool {
+		_, ok := m["sys:"+syscallsFixas[0]]
+		return ok
+	}
+	todas := map[string]bool{}
+	for _, m := range ms {
+		if !comDado(m) {
+			continue
+		}
+		for n := range m {
+			if strings.HasPrefix(n, "sys:") {
+				todas[n] = true
+			}
+		}
+	}
+	for _, m := range ms {
+		if !comDado(m) {
+			continue
+		}
+		for n := range todas {
+			if _, ok := m[n]; !ok {
+				m[n] = 0
+			}
+		}
+	}
 }
 
 // escolherMetricas: latência, as syscalls fixas e as 5 outras que mais mudaram.
