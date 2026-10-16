@@ -14,7 +14,7 @@ export const listarDeploys: Tool = {
     try {
       return { deploys: await lerDeploys(args.servico as string | undefined, args.janela_h as number) };
     } catch (erro) {
-      return semFonte("deploys", erro, { deploys: [] });
+      return { deploys: null, ...semFonte("deploys", erro) };
     }
   },
 };

@@ -19,7 +19,7 @@ export const buscarErros: Tool = {
         // da fonte de logs chega ao agente como "nenhum erro encontrado".
         return { erros: [] };
       }
-      return semFonte("logs", erro, { erros: [] });
+      return { erros: null, ...semFonte("logs", erro) };
     }
   },
 };

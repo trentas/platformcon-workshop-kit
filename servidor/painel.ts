@@ -79,7 +79,7 @@ export function paginaPainel(): string {
 <div class="colunas" id="colunas"></div>
 <script>
 const rotulos = {
-  parou_no_vazio: "pararam no resultado vazio",
+  parou_no_vazio: "pararam depois de buscar_erros",
   conferiu_a_fonte: "conferiram a fonte",
   outra_explicacao: "procuraram outra explicação",
   em_andamento: "em andamento",
@@ -94,7 +94,7 @@ function coluna(v, d, atual) {
   return '<section class="versao' + (atual ? " atual" : "") + '">' +
     '<h2>' + v + (atual ? '<small>no ar agora</small>' : '') + '</h2>' +
     '<p class="resumo">' + d.sessoes + ' sessões, ' + d.emAndamento + ' em andamento · ' +
-    d.vaziosDeclarados + ' de ' + d.comVazio + ' respostas vazias declararam a fonte não lida</p>' +
+    d.vaziosDeclarados + ' de ' + d.comVazio + ' respostas sem erros declararam a fonte não lida</p>' +
     '<div class="numeros">' + numeros + '</div>' +
     '<table><tr><th>sequência de tools</th><th class="n">sessões</th></tr>' + formas + '</table></section>';
 }

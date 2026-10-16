@@ -46,11 +46,18 @@ export function formaDosArgs(args: Record<string, unknown>, textoLivre: string[]
 // Resume a resposta sem copiar o conteúdo: quantos itens a lista principal tem
 // e quais fontes a resposta disse que não leu. Guarda o NOME da fonte, que é da
 // plataforma, nunca o texto do aviso.
+//
+// A coleção principal é a primeira propriedade que seja lista ou null (fora
+// "fontes" e "aviso"): lista vira a contagem, null fica null, que é "não lida".
+// A status_fontes não tem coleção; ali os itens são as fontes.
 export function resumoDoResultado(res: Record<string, unknown>): Resultado {
   let itens: number | null = null;
-  for (const v of Object.values(res)) {
-    if (Array.isArray(v)) {
-      itens = v.length;
+  let temColecao = false;
+  for (const [k, v] of Object.entries(res)) {
+    if (k === "fontes" || k === "aviso") continue;
+    if (Array.isArray(v) || v === null) {
+      itens = Array.isArray(v) ? v.length : null;
+      temColecao = true;
       break;
     }
   }
@@ -58,7 +65,7 @@ export function resumoDoResultado(res: Record<string, unknown>): Resultado {
   let naoLidas: string[] | undefined;
   if (fontes && typeof fontes === "object" && !Array.isArray(fontes)) {
     const entradas = Object.entries(fontes as Record<string, unknown>);
-    if (itens === null) itens = entradas.length;
+    if (!temColecao) itens = entradas.length;
     naoLidas = entradas.filter(([, estado]) => estado !== "ok").map(([nome]) => nome);
   }
   return naoLidas && naoLidas.length > 0 ? { status: "ok", itens, fontes_nao_lidas: naoLidas } : { status: "ok", itens };

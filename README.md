@@ -10,7 +10,7 @@ São três estações:
 | 2. Verificações de CI para código escrito por agentes | Demonstração | Telão |
 | 3. Comparação de versões com eBPF (ptop) | Captura de duas versões de um serviço e comparação contra o ruído | Na sua máquina Linux ou VM |
 
-> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0); a 1 e a 2, com sessões simuladas. Falta testar o avaliador contra o modelo e a estação 1 com agentes de verdade.
+> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0); a 1 e a 2, com sessões simuladas, e o avaliador contra o modelo (v1: sinal falso; v2: nenhum achado). Falta testar a estação 1 com agentes de verdade.
 
 ## Antes do workshop: o preflight
 
@@ -101,7 +101,7 @@ Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request 
 
 ## Estação 1: agentes como usuários de um servidor MCP (lado do instrutor)
 
-O servidor de exemplo se chama `plataforma` e tem quatro tools: `listar_servicos`, `listar_deploys`, `buscar_erros` e `status_fontes`. A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, a mesma lista vazia vem com `"fontes": {"logs": "indisponivel"}`.
+O servidor de exemplo se chama `plataforma` e tem quatro tools: `listar_servicos`, `listar_deploys`, `buscar_erros` e `status_fontes`. A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
 
 ```bash
 make servidor                 # sobe em http://127.0.0.1:3000/mcp; painel em /painel (ADMIN_TOKEN padrão: dev)
@@ -124,7 +124,7 @@ Para publicar o servidor: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio PORT=3000 
 make guardas
 ```
 
-`guardas/catch-vazio.ts` varre `servidor/tools` e recusa todo `catch` que devolve lista vazia sem declarar a fonte que falhou (`semFonte(...)`, em `servidor/fontes.ts`). A exceção, quando é de propósito, fica escrita no código com o comentário `guarda:catch-vazio-proposital` e aparece no relatório: é o caso da v1 de `buscar_erros`.
+`guardas/catch-vazio.ts` varre `servidor/tools` e recusa todo `catch` que devolve lista vazia sem declarar a fonte que falhou. A forma certa é `return { erros: null, ...semFonte("logs", erro) }` (helper em `servidor/fontes.ts`). A exceção, quando é de propósito, fica escrita no código com o comentário `guarda:catch-vazio-proposital` e aparece no relatório: é o caso da v1 de `buscar_erros`.
 
 A guarda tem a sua própria guarda: o relatório falha se a varredura não leu nenhum arquivo, e o teste (`guardas/catch-vazio.test.ts`) confere que a regra reconhece o padrão proibido num exemplo e ignora o padrão dentro de comentário.
 

@@ -4,7 +4,8 @@
 import type { LinhaTrace } from "./trace.ts";
 import type { Versao } from "./tools/tipos.ts";
 
-// O que aconteceu depois que buscar_erros devolveu uma lista vazia.
+// O que aconteceu depois que buscar_erros respondeu sem nenhum erro: lista vazia
+// (v1, que não diz se leu) ou null com a fonte declarada (v2, que diz que não leu).
 export type Desfecho =
   | "parou_no_vazio" //        a sessão terminou logo depois do vazio
   | "conferiu_a_fonte" //      chamou status_fontes
@@ -19,7 +20,7 @@ export type Sessao = {
   encerrada: boolean;
   sequencia: string;
   desfecho: Desfecho;
-  // a lista vazia veio com a fonte declarada (v2) ou sem nada (v1)
+  // a resposta sem erros declarou a fonte não lida (v2) ou não declarou nada (v1)
   vazioDeclarado: boolean | null;
 };
 
@@ -52,8 +53,9 @@ export function agrupar(linhas: LinhaTrace[], agora = Date.now(), inatividadeMs 
   return out;
 }
 
+// buscar_erros respondeu sem erro nenhum: 0 itens, ou nenhum item porque a fonte não foi lida.
 export function ehVazioDeErros(c: LinhaTrace): boolean {
-  return c.tool === "buscar_erros" && c.resultado.status === "ok" && c.resultado.itens === 0;
+  return c.tool === "buscar_erros" && c.resultado.status === "ok" && (c.resultado.itens === 0 || c.resultado.itens === null);
 }
 
 function desfecho(chamadas: LinhaTrace[], encerrada: boolean): Desfecho {

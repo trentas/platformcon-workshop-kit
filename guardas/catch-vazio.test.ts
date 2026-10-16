@@ -17,7 +17,7 @@ test("a regra reconhece o catch que devolve lista vazia", () => {
 });
 
 test("comentário com o padrão não dispara a regra", () => {
-  const fonte = ["async function f() {", "  try { return 1 }", "  // catch { return [] }", "  catch (e) { return semFonte('x', e, { itens: [] }) }", "}"].join("\n");
+  const fonte = ["async function f() {", "  try { return 1 }", "  // catch { return [] }", "  catch (e) { return { itens: null, ...semFonte('x', e) } }", "}"].join("\n");
   expect(verificarFonte(fonte, "f.ts").violacoes).toEqual([]);
 });
 

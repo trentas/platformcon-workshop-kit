@@ -43,6 +43,10 @@ function observar(sessoes: Sessao[]): string[] {
   const chamaram = sessoes.filter((s) => s.chamadas.some((c) => c.tool === "buscar_erros"));
   const comVazio = sessoes.filter((s) => s.chamadas.some(ehVazioDeErros));
   const declarado = comVazio.filter((s) => s.vazioDeclarado);
+  const listaVazia = sessoes.filter((s) =>
+    s.chamadas.some((c) => ehVazioDeErros(c) && c.resultado.itens === 0 && !c.resultado.fontes_nao_lidas?.length),
+  );
+  const semLeitura = sessoes.filter((s) => s.chamadas.some((c) => ehVazioDeErros(c) && c.resultado.itens === null));
   const pararam = sessoes.filter((s) => s.desfecho === "parou_no_vazio");
   const andamento = sessoes.filter((s) => s.desfecho === "em_andamento");
   const conferiram = sessoes.filter((s) => s.chamadas.some((c) => c.tool === "status_fontes"));
@@ -53,11 +57,13 @@ function observar(sessoes: Sessao[]): string[] {
   const s = (n: number) => (n === 1 ? "1 sessão" : `${n} sessões`);
   const linhas = [
     `${s(sessoes.length)} na versão ${versao} do servidor`,
-    `${comVazio.length} de ${s(chamaram.length)} que chamaram buscar_erros receberam 0 itens com status ok`,
-    `${declarado.length} dessas ${comVazio.length} respostas vazias declararam a fonte não lida (campo fontes)`,
-    `${s(pararam.length)} terminaram sem outra chamada depois da lista vazia`,
+    `${comVazio.length} de ${s(chamaram.length)} que chamaram buscar_erros receberam uma resposta sem nenhum erro`,
+    `${listaVazia.length} dessas respostas eram lista vazia (erros: []) sem fonte declarada`,
+    `${semLeitura.length} dessas respostas eram erros: null com a fonte declarada como não lida`,
+    `${declarado.length} de ${comVazio.length} respostas sem erros declararam a fonte não lida (campo fontes)`,
+    `${s(pararam.length)} terminaram sem outra chamada depois dessa resposta`,
     `status_fontes foi chamada em ${s(conferiram.length)}; em ${fonteFora.length} delas devolveu logs como não ok`,
-    `${s(deploys.length)} seguiram para listar_deploys depois do vazio, sem chamar status_fontes`,
+    `${s(deploys.length)} seguiram para listar_deploys depois dessa resposta, sem chamar status_fontes`,
   ];
   if (andamento.length) linhas.push(`${s(andamento.length)} ainda em andamento na leitura`);
   return linhas;
