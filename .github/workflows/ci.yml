@@ -78,10 +78,10 @@ jobs:
           KIT_BINARIOS_URL=http://127.0.0.1:8765 make preflight
           grep -q 'ferramentas=release' preflight-resultado.txt
 
-  # Só sob demanda: a estação 3 inteira numa VM amd64 limpa, com as capturas como
-  # artefato. É daqui que podem sair as capturas de reserva de amd64.
+  # Só sob demanda: as capturas de reserva da estação 3 numa VM amd64 limpa, pelo
+  # mesmo script que gerou as de arm64. O artefato vai para capturas/prontas/amd64.
   capturas:
-    name: Estação 3 completa (amd64, sob demanda)
+    name: Capturas de reserva (amd64, sob demanda)
     if: github.event_name == 'workflow_dispatch'
     needs: preflight
     runs-on: ubuntu-24.04
@@ -91,19 +91,9 @@ jobs:
         with:
           go-version-file: go.mod
       - run: make preflight
-      - name: Capturas v1, v2 e v1 de novo
-        run: |
-          for c in v1:v1-a v2:v2 v1:v1-b; do
-            make -s subir VERSAO=${c%%:*}
-            sleep 5
-            make captura NOME=${c##*:} DURACAO=30
-          done
-          make parar
-      - name: Comparações
-        run: |
-          make comparar A=v1-a B=v2 | tee capturas/comparar-v1-a-v2.txt
-          make comparar A=v1-a B=v1-b | tee capturas/comparar-v1-a-v1-b.txt
+      - run: ./estacao3/capturas-de-reserva.sh
+      - run: cat capturas/prontas/amd64/comparar-*.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: capturas-amd64
-          path: capturas/
+          name: capturas-de-reserva-amd64
+          path: capturas/prontas/amd64/

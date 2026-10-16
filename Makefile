@@ -5,8 +5,13 @@ SOCKET   ?= /tmp/ptop.sock
 DURACAO  ?= 60
 RPS      ?= 50
 
+# PRONTAS=1 compara as capturas de reserva do kit (capturas/prontas/<arch>, da sua
+# arquitetura ou da ARCH pedida) em vez das suas.
+ARCH_KIT := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+CAPTURAS := $(if $(PRONTAS),capturas/prontas/$(or $(ARCH),$(ARCH_KIT)),capturas)
+
 # Com A=v1-a e uma captura v1-b no disco, a comparação mede o ruído contra ela.
-RUIDO ?= $(if $(filter-out v1-b,$(B)),$(if $(wildcard capturas/v1-b.jsonl),v1-b,),)
+RUIDO ?= $(if $(filter-out v1-b,$(B)),$(if $(wildcard $(CAPTURAS)/v1-b.jsonl),v1-b,),)
 
 # Go 1.25 ou mais novo compila as ferramentas; sem ele, elas vêm da release (make preflight).
 GO_OK := $(shell go env GOVERSION 2>/dev/null | awk -F'[go.]' '{ if ($$3 > 1 || ($$3 == 1 && $$4 >= 25)) print "sim" }')
@@ -82,7 +87,7 @@ captura:
 
 comparar: build
 	@test -n "$(A)" -a -n "$(B)" || { echo "uso: make comparar A=v1-a B=v2"; exit 1; }
-	@./bin/comparar -a $(A) -b $(B) $(if $(RUIDO),-ruido $(RUIDO),); s=$$?; \
+	@./bin/comparar -dir $(CAPTURAS) -a $(A) -b $(B) $(if $(RUIDO),-ruido $(RUIDO),); s=$$?; \
 	  [ $$s -eq 3 ] && exit 0; exit $$s   # 3 = comparação recusada pela instrumentação: é resultado, não erro
 
 limpar: parar
