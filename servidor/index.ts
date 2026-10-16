@@ -2,25 +2,26 @@
 //
 // Na porta pública (PORT, a que vai para o túnel ou para o proxy):
 //   POST/GET/DELETE /mcp     o servidor MCP (Streamable HTTP, uma sessão por agente)
-//   POST /admin/versao       troca a versão no ar: {"versao":"v2"}   (Bearer ADMIN_TOKEN)
-//   GET  /admin/traces       os traces da sala, em JSONL              (Bearer ADMIN_TOKEN)
 //   GET  /saude
 //
-// Numa porta só local (PAINEL_PORT), o painel do telão:
+// Numa porta só local (PAINEL_PORT), o que é do instrutor:
 //   GET  /painel             o painel da sala
 //   GET  /painel/dados       os números do painel, em JSON
+//   POST /admin/versao       troca a versão no ar: {"versao":"v2"}
+//   GET  /admin/traces       os traces da sala, em JSONL
 //
-// O painel fica fora da porta pública de propósito: ele consulta o servidor a
-// cada 2 s, e por um túnel com cota (o ngrok gratuito tem 20 mil requisições por
-// mês) meia sala com o painel aberto esgotaria a cota no meio da estação.
+// O painel fica fora da porta pública porque ele consulta o servidor a cada 2 s,
+// e por um túnel com cota (o ngrok gratuito tem 20 mil requisições por mês) meia
+// sala com o painel aberto esgotaria a cota no meio da estação. As rotas de admin
+// ficam junto dele porque o servidor roda na máquina de quem conduz: nada que
+// troca a versão precisa estar na internet, nem um token aparecer no telão.
 //
 // Variáveis: TOOLS_OCULTAS (status_fontes), PORT (3000), HOST (127.0.0.1), ALLOWED_HOSTS (lista separada por
 // vírgula, com o domínio público; os nomes locais seguem aceitos), PAINEL_PORT
-// (3001), PAINEL_HOST (127.0.0.1), VERSAO (v1), TRACES (traces/sala.jsonl),
-// ADMIN_TOKEN (sem ele, as rotas de admin respondem 503).
+// (3001), PAINEL_HOST (127.0.0.1), VERSAO (v1), TRACES (traces/sala.jsonl).
 
-import { randomUUID, timingSafeEqual } from "node:crypto";
-import express, { type Request, type Response, type NextFunction } from "express";
+import { randomUUID } from "node:crypto";
+import express, { type Request, type Response } from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
@@ -39,7 +40,6 @@ const publicos = process.env.ALLOWED_HOSTS?.split(",").map((h) => h.trim()).filt
 const ALLOWED_HOSTS = publicos?.length ? [...publicos, ...LOCAIS] : undefined;
 const PAINEL_PORT = Number(process.env.PAINEL_PORT ?? 3001);
 const PAINEL_HOST = process.env.PAINEL_HOST ?? "127.0.0.1";
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
 const MAX_SESSOES = 500;
 const SESSAO_OCIOSA_MS = 30 * 60_000;
 
@@ -118,33 +118,6 @@ const porSessao = async (req: Request, res: Response) => {
 app.get("/mcp", porSessao);
 app.delete("/mcp", porSessao);
 
-function admin(req: Request, res: Response, next: NextFunction) {
-  if (!ADMIN_TOKEN) {
-    res.status(503).send("ADMIN_TOKEN não configurado");
-    return;
-  }
-  const recebido = Buffer.from(req.header("authorization")?.replace(/^Bearer /, "") ?? "");
-  const esperado = Buffer.from(ADMIN_TOKEN);
-  if (recebido.length !== esperado.length || !timingSafeEqual(recebido, esperado)) {
-    res.status(401).send("token inválido");
-    return;
-  }
-  next();
-}
-
-app.post("/admin/versao", admin, (req: Request, res: Response) => {
-  const v = req.body?.versao;
-  if (v !== "v1" && v !== "v2") {
-    res.status(400).json({ erro: 'use {"versao":"v1"} ou {"versao":"v2"}' });
-    return;
-  }
-  estado.versao = v;
-  console.log(`versão no ar: ${v}`);
-  res.json(estado);
-});
-app.get("/admin/traces", admin, (_req: Request, res: Response) => {
-  res.type("application/x-ndjson").send(gravador.jsonl());
-});
 app.get("/saude", (_req: Request, res: Response) => {
   res.json({ ok: true, versao: estado.versao, sessoes: sessoes.size, chamadas: gravador.linhas().length });
 });
@@ -161,6 +134,7 @@ setInterval(() => {
 }, 60_000).unref();
 
 const painel = express();
+painel.use(express.json());
 painel.get("/", (_req: Request, res: Response) => res.redirect("/painel"));
 painel.get("/painel", (_req: Request, res: Response) => {
   res.type("html").send(paginaPainel());
@@ -168,12 +142,27 @@ painel.get("/painel", (_req: Request, res: Response) => {
 painel.get("/painel/dados", (_req: Request, res: Response) => {
   res.json(dadosDoPainel(gravador.linhas(), estado.versao));
 });
+painel.post("/admin/versao", (req: Request, res: Response) => {
+  const v = req.body?.versao;
+  if (v !== "v1" && v !== "v2") {
+    res.status(400).json({ erro: 'use {"versao":"v1"} ou {"versao":"v2"}' });
+    return;
+  }
+  estado.versao = v;
+  console.log(`versão no ar: ${v}`);
+  res.json(estado);
+});
+painel.get("/admin/traces", (_req: Request, res: Response) => {
+  res.type("application/x-ndjson").send(gravador.jsonl());
+});
 
 app.listen(PORT, HOST, () => {
   console.log(`plataforma (${estado.versao}) em http://${HOST}:${PORT}/mcp`);
   if (publicos?.length) console.log(`hosts públicos aceitos: ${publicos.join(", ")}`);
-  if (!ADMIN_TOKEN) console.log("sem ADMIN_TOKEN: as rotas de admin estão desligadas");
 });
 painel.listen(PAINEL_PORT, PAINEL_HOST, () => {
-  console.log(`painel em http://${PAINEL_HOST}:${PAINEL_PORT}/painel (só local)`);
+  console.log(`painel e admin em http://${PAINEL_HOST}:${PAINEL_PORT}/painel`);
+  if (!LOCAIS.includes(PAINEL_HOST)) {
+    console.log(`atenção: o painel e a troca de versão aceitam conexões em ${PAINEL_HOST}, sem senha`);
+  }
 });

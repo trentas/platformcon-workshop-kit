@@ -1,7 +1,7 @@
 // O avaliador da estação 1: lê os traces da sala e escreve um rascunho de issue.
 //
 //   node avaliador/avaliar.ts --traces traces/sala.jsonl [--versao v1] [--modelo claude-opus-5-5] [--seco]
-//   node avaliador/avaliar.ts --url https://.../admin/traces --token $ADMIN_TOKEN
+//   node avaliador/avaliar.ts --url http://127.0.0.1:3001/admin/traces   (os traces do servidor no ar)
 //
 // A divisão de trabalho é a que o rascunho mostra: o OBSERVADO é calculado aqui,
 // por código, a partir dos traces, e pode ser conferido linha a linha. O modelo
@@ -32,7 +32,7 @@ const versaoRubrica = /versão:\s*(\S+)/.exec(rubrica)?.[1] ?? "?";
 async function carregar(): Promise<LinhaTrace[]> {
   const url = arg("url");
   if (url) {
-    const r = await fetch(url, { headers: { authorization: `Bearer ${arg("token", process.env.ADMIN_TOKEN ?? "")}` } });
+    const r = await fetch(url);
     if (!r.ok) throw new Error(`GET ${url}: ${r.status} ${await r.text()}`);
     return lerTraces(await r.text());
   }

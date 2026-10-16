@@ -1,0 +1,85 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  node:
+    name: Estações 1 e 2 (Node 22.18)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.18" # o mínimo que o README pede
+          cache: npm
+      - run: npm ci
+      - name: Guardas da estação 2
+        run: make guardas
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Fumaça da estação 1 (servidor, simulador, troca de versão, avaliador sem modelo)
+        run: make fumaca
+
+  go:
+    name: Estação 3 (Go)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: make build
+      - run: bash -n preflight.sh
+
+  # O preflight de verdade, numa VM amd64 limpa: baixa o ptop da release, aplica as
+  # capabilities com sudo e faz a captura de teste de 5 s.
+  preflight:
+    name: Preflight (amd64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: make preflight
+      - name: Coletores
+        if: always()
+        run: test -x bin/ptop && ./bin/ptop --caps || true
+
+  # Só sob demanda: a estação 3 inteira numa VM amd64 limpa, com as capturas como
+  # artefato. É daqui que podem sair as capturas de reserva de amd64.
+  capturas:
+    name: Estação 3 completa (amd64, sob demanda)
+    if: github.event_name == 'workflow_dispatch'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: make preflight
+      - name: Capturas v1, v2 e v1 de novo
+        run: |
+          for c in v1:v1-a v2:v2 v1:v1-b; do
+            make -s subir VERSAO=${c%%:*}
+            sleep 5
+            make captura NOME=${c##*:} DURACAO=30
+          done
+          make parar
+      - name: Comparações
+        run: |
+          make comparar A=v1-a B=v2 | tee capturas/comparar-v1-a-v2.txt
+          make comparar A=v1-a B=v1-b | tee capturas/comparar-v1-a-v1-b.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: capturas-amd64
+          path: capturas/

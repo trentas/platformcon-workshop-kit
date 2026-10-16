@@ -1,5 +1,4 @@
 # Kit do workshop "Quando o usuário da plataforma é um agente" — PlatformCon São Paulo 2026.
-# Os alvos da estação 3 estão aqui; os das estações 1 e 2 entram junto com elas.
 
 SHELL    := /bin/bash
 SOCKET   ?= /tmp/ptop.sock
@@ -9,7 +8,7 @@ RPS      ?= 50
 # Com A=v1-a e uma captura v1-b no disco, a comparação mede o ruído contra ela.
 RUIDO ?= $(if $(filter-out v1-b,$(B)),$(if $(wildcard capturas/v1-b.jsonl),v1-b,),)
 
-.PHONY: preflight build subir v1 v2 acompanhar parar captura comparar limpar servidor simular avaliar guardas checar
+.PHONY: preflight build subir v1 v2 acompanhar parar captura comparar limpar servidor palco versao simular avaliar fumaca guardas checar
 
 preflight:
 	@./preflight.sh
@@ -71,9 +70,26 @@ limpar: parar
 
 # --- estação 1: o servidor MCP de exemplo, o painel e o avaliador (lado do instrutor)
 
-# MCP na PORT (3000), painel só local na PAINEL_PORT (3001). Para publicar: ALLOWED_HOSTS=<domínio>.
+# MCP na PORT (3000); painel e admin só locais, na PAINEL_PORT (3001). Para publicar: ALLOWED_HOSTS=<domínio>.
 servidor:
-	@ADMIN_TOKEN=$${ADMIN_TOKEN:-dev} node servidor/index.ts
+	@node servidor/index.ts
+
+# No palco: o túnel do ngrok e o servidor juntos; Ctrl-C derruba os dois.
+#   make palco DOMINIO=nome.ngrok-free.dev TRACES=traces/sala-0711.jsonl
+palco:
+	@test -n "$(DOMINIO)" || { echo "uso: make palco DOMINIO=nome.ngrok-free.dev [TRACES=traces/sala-DDMM.jsonl]"; exit 1; }
+	@command -v ngrok >/dev/null || { echo "ngrok não encontrado"; exit 1; }
+	@mkdir -p run
+	@ngrok http $${PORT:-3000} --url=https://$(DOMINIO) --log=stdout > run/ngrok.log 2>&1 & ng=$$!; \
+	  trap 'kill $$ng 2>/dev/null' EXIT INT TERM; \
+	  echo "túnel: https://$(DOMINIO)/mcp (log do ngrok em run/ngrok.log)"; \
+	  ALLOWED_HOSTS=$(DOMINIO) node servidor/index.ts
+
+# make versao V=v2: troca a versão no ar, pela porta local.
+versao:
+	@test "$(V)" = v1 -o "$(V)" = v2 || { echo "uso: make versao V=v1|v2"; exit 1; }
+	@curl -sS -X POST -H 'content-type: application/json' -d '{"versao":"$(V)"}' \
+	  http://$${PAINEL_HOST:-127.0.0.1}:$${PAINEL_PORT:-3001}/admin/versao; echo
 
 simular:
 	@node servidor/simular-sala.ts --url $${URL:-http://127.0.0.1:3000/mcp} --sessoes $${SESSOES:-12}
@@ -81,6 +97,25 @@ simular:
 # make avaliar VERSAO=v1 [SECO=1]
 avaliar:
 	@node avaliador/avaliar.ts --traces $${TRACES:-traces/sala.jsonl} --versao $${VERSAO:-v1} $(if $(SECO),--seco,)
+
+# Teste de fumaça da estação 1, em portas próprias (3100 e 3101): sessões simuladas
+# nas duas versões, a troca de versão pela porta local, a porta pública sem admin e
+# o observado do avaliador, sem chamar o modelo.
+fumaca:
+	@mkdir -p run && rm -f run/fumaca.jsonl
+	@PORT=3100 PAINEL_PORT=3101 TRACES=run/fumaca.jsonl node servidor/index.ts > run/fumaca.log 2>&1 & srv=$$!; \
+	  trap 'kill $$srv 2>/dev/null' EXIT; \
+	  for i in $$(seq 50); do curl -sf http://127.0.0.1:3100/saude >/dev/null && break; sleep 0.2; done; \
+	  set -e; \
+	  node servidor/simular-sala.ts --url http://127.0.0.1:3100/mcp --sessoes 6; \
+	  test "$$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3100/admin/versao)" = 404; \
+	  curl -sf -X POST -H 'content-type: application/json' -d '{"versao":"v2"}' http://127.0.0.1:3101/admin/versao > /dev/null; \
+	  node servidor/simular-sala.ts --url http://127.0.0.1:3100/mcp --sessoes 6; \
+	  node avaliador/avaliar.ts --traces run/fumaca.jsonl --versao v1 --seco 2>/dev/null > run/fumaca-v1.md; \
+	  node avaliador/avaliar.ts --traces run/fumaca.jsonl --versao v2 --seco 2>/dev/null > run/fumaca-v2.md; \
+	  grep -Eq '\b6 dessas respostas eram lista vazia' run/fumaca-v1.md; \
+	  grep -Eq '\b6 dessas respostas eram erros: null' run/fumaca-v2.md; \
+	  echo "fumaça ok: v1 com lista vazia, v2 com a fonte declarada, admin fora da porta pública"
 
 # --- estação 2: a verificação de CI e a guarda da guarda
 

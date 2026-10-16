@@ -10,7 +10,7 @@ São três estações:
 | 2. Verificações de CI para código escrito por agentes | Demonstração | Telão |
 | 3. Comparação de versões com eBPF (ptop) | Captura de duas versões de um serviço e comparação contra o ruído | Na sua máquina Linux ou VM |
 
-> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0); a 1 e a 2, com sessões simuladas, e o avaliador contra o modelo (v1: sinal falso; v2: nenhum achado). Falta testar a estação 1 com agentes de verdade.
+> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0). A estação 1 foi testada com sessões simuladas e com agentes Claude pelo túnel, e o avaliador contra o modelo (v1: sinal falso; v2: nenhum achado). Falta testar a estação 1 com outros agentes.
 
 ## Antes do workshop: o preflight
 
@@ -39,6 +39,30 @@ sudo setcap cap_bpf,cap_perfmon,cap_sys_admin,cap_dac_read_search,cap_sys_ptrace
 ```
 
 `cap_sys_admin` é quase root na prática. Conceda numa VM de laboratório, ou rode sem ela e use `./bin/ptop --caps` para ver o que deixou de coletar. O [README do ptop](https://github.com/trentas/ptop) explica o que cada uma libera.
+
+## Estação 1: conectar o seu agente
+
+No dia, o servidor da sala fica em:
+
+```
+https://crushed-dehydrate-fruit.ngrok-free.dev/mcp
+```
+
+Ele só responde durante o workshop. Depois, suba uma cópia local com `make servidor` e use `http://127.0.0.1:3000/mcp`.
+
+Abra o agente numa pasta vazia, fora do kit, e configure o servidor com o nome `plataforma`:
+
+| Agente | Onde | Configuração |
+|---|---|---|
+| Claude Code | terminal | `claude mcp add --transport http plataforma <endereço>` |
+| Cursor | `~/.cursor/mcp.json` | `{"mcpServers": {"plataforma": {"url": "<endereço>"}}}` |
+| VS Code (Copilot, modo agente) | `.vscode/mcp.json` | `{"servers": {"plataforma": {"type": "http", "url": "<endereço>"}}}` |
+| Gemini CLI | `~/.gemini/settings.json` | `{"mcpServers": {"plataforma": {"httpUrl": "<endereço>"}}}` |
+| Codex CLI | `~/.codex/config.toml` | `[mcp_servers.plataforma]` e, na linha de baixo, `url = "<endereço>"` |
+
+Reinicie o agente depois de mudar a configuração. Para conferir, peça ao agente a lista de tools do servidor `plataforma`: são três, `listar_servicos`, `listar_deploys` e `buscar_erros`.
+
+Até aqui, só o Claude Code foi testado contra o servidor. As outras linhas seguem a documentação de cada agente e serão conferidas no ensaio. Se o seu agente conecta mas não lista as tools, acrescente o cabeçalho `ngrok-skip-browser-warning: 1` à configuração (ver "Publicar o servidor para a sala", abaixo).
 
 ## Estação 3: comparação de versões com eBPF
 
@@ -99,31 +123,36 @@ Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request 
 - Uma métrica que não pôde ser medida aparece como `não medido`, nunca como zero.
 - Uma diferença é marcada quando passa o dobro da variação entre `v1-a` e `v1-b` e também um piso: 5% (ou 0,02 por request) nas syscalls e 10% na latência, porque o histograma de latência tem resolução de 5%.
 
-## Estação 1: agentes como usuários de um servidor MCP (lado do instrutor)
+## Estação 1: o lado do instrutor
 
 O servidor de exemplo se chama `plataforma` e anuncia três tools: `listar_servicos`, `listar_deploys` e `buscar_erros`. Uma quarta, `status_fontes`, existe e fica oculta por padrão (`TOOLS_OCULTAS`; ver os resultados abaixo). A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
 
 ```bash
-make servidor                 # MCP em http://127.0.0.1:3000/mcp; painel só local em http://127.0.0.1:3001/painel (ADMIN_TOKEN padrão: dev)
+make servidor                 # MCP em http://127.0.0.1:3000/mcp; painel em http://127.0.0.1:3001/painel
 make simular SESSOES=20       # ensaio: 20 sessões simuladas, com as três formas
-curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'content-type: application/json' \
-     -d '{"versao":"v2"}' http://127.0.0.1:3000/admin/versao      # troca a versão no ar
+make versao V=v2              # troca a versão no ar
 make avaliar VERSAO=v1        # rascunho de issue sobre as sessões da v1 (precisa de ANTHROPIC_API_KEY)
 make avaliar VERSAO=v1 SECO=1 # só o observado, sem chamar o modelo
+make fumaca                   # teste de fumaça em portas próprias (3100 e 3101), sem chamar o modelo
 ```
 
 - **O trace** (`traces/sala.jsonl`) tem uma linha por chamada: tool, argumentos estruturados, status, quantidade de itens, fontes declaradas como não lidas, ordem e duração. Argumento de texto livre vira tamanho e hash. O servidor nunca vê o prompt nem a resposta do agente.
 - **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da lista vazia: parou, conferiu a fonte ou procurou outra explicação. Uma sessão conta como encerrada depois de 30 s sem chamada.
 - **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
 
-**Publicar o servidor para a sala.** Só a porta do MCP sai para fora; o painel escuta em `127.0.0.1` numa porta separada (`PAINEL_PORT`, 3001), porque ele consulta o servidor a cada 2 s e, por um túnel com cota, meia sala com o painel aberto esgotaria a cota no meio da estação. Com o ngrok:
+**Publicar o servidor para a sala.** O servidor roda na máquina de quem conduz. Só a porta do MCP sai para fora. O painel e as rotas de admin (`/admin/versao`, `/admin/traces`) escutam em `127.0.0.1`, numa porta separada (`PAINEL_PORT`, 3001), e não pedem senha. O painel consulta o servidor a cada 2 s: por um túnel com cota, meia sala com ele aberto esgotaria a cota no meio da estação. A troca de versão fica local porque nada que muda o servidor precisa estar na internet. Com o ngrok:
 
 ```bash
-ngrok http 3000                                                    # mostra o domínio, ex.: nome.ngrok-free.dev
-ALLOWED_HOSTS=nome.ngrok-free.dev ADMIN_TOKEN=... make servidor    # aceita o domínio público e segue aceitando localhost
+make palco DOMINIO=nome.ngrok-free.dev TRACES=traces/sala-0711.jsonl   # túnel e servidor juntos; Ctrl-C derruba os dois
 ```
 
-O plano gratuito do ngrok tem um domínio fixo por conta e 20 mil requisições por mês; uma sala de 50 pessoas com duas perguntas cada usa perto de mil. Para quem abre o domínio no navegador, o ngrok mostra uma página de aviso; clientes MCP não são afetados. Com proxy próprio: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio`, atrás de TLS. Requer Node 22.18 ou mais novo (roda o TypeScript direto).
+O plano gratuito do ngrok tem um domínio fixo por conta e 20 mil requisições por mês; uma sala de 50 pessoas com duas perguntas cada usa perto de mil.
+
+Para requisições GET com User-Agent de navegador, o ngrok gratuito devolve uma página de aviso no lugar da resposta. As chamadas de tool (POST) passam com qualquer User-Agent. O que recebe a página é o GET que o cliente MCP abre para o stream de eventos do servidor, se o cliente se identificar como navegador. O cliente do SDK oficial em TypeScript seguiu funcionando nesse caso, testado com o User-Agent do VS Code. Um cliente que trate o stream como obrigatório pode falhar. O cabeçalho `ngrok-skip-browser-warning` com qualquer valor desliga a página.
+
+Servidor numa VM e navegador no host: o painel precisa escutar num endereço que o host alcança, por exemplo `PAINEL_HOST=10.211.55.3` (o IP da VM na rede compartilhada do Parallels; `ip -4 addr` mostra o seu). Com a VM em rede compartilhada (NAT), esse endereço só é visível para o host. Em modo bridge, ele fica visível para a rede da sala.
+
+Com proxy próprio: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio`, atrás de TLS, e o painel por SSH (`ssh -L 3001:127.0.0.1:3001 <máquina>`). Requer Node 22.18 ou mais novo (roda o TypeScript direto).
 
 `TOOLS_OCULTAS=status_fontes` tira a tool do anúncio (ver "Resultados com agentes reais").
 
