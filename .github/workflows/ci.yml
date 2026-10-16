@@ -55,6 +55,27 @@ jobs:
         if: always()
         run: test -x bin/ptop && ./bin/ptop --caps || true
 
+  # O mesmo preflight sem Go no PATH: as ferramentas vêm dos pacotes que a
+  # release publica, servidos localmente.
+  preflight-sem-go:
+    name: Preflight sem Go (amd64, ferramentas do pacote)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: make pacotes
+      - name: Preflight sem Go, com os pacotes servidos em localhost
+        run: |
+          (cd dist && exec python3 -m http.server 8765 --bind 127.0.0.1 > /dev/null 2>&1 &)
+          export PATH="$(echo "$PATH" | tr ':' '\n' | grep -vi go | paste -sd:)"
+          if command -v go; then echo "o Go ainda está no PATH: o teste não vale"; exit 1; fi
+          for i in $(seq 20); do curl -sf http://127.0.0.1:8765/SHA256SUMS > /dev/null && break; sleep 0.5; done
+          rm -rf bin
+          KIT_BINARIOS_URL=http://127.0.0.1:8765 make preflight
+          grep -q 'ferramentas=release' preflight-resultado.txt
+
   # Só sob demanda: a estação 3 inteira numa VM amd64 limpa, com as capturas como
   # artefato. É daqui que podem sair as capturas de reserva de amd64.
   capturas:

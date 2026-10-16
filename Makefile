@@ -8,14 +8,34 @@ RPS      ?= 50
 # Com A=v1-a e uma captura v1-b no disco, a comparação mede o ruído contra ela.
 RUIDO ?= $(if $(filter-out v1-b,$(B)),$(if $(wildcard capturas/v1-b.jsonl),v1-b,),)
 
-.PHONY: preflight build subir v1 v2 acompanhar parar captura comparar limpar servidor palco versao simular avaliar fumaca guardas checar
+# Go 1.25 ou mais novo compila as ferramentas; sem ele, elas vêm da release (make preflight).
+GO_OK := $(shell go env GOVERSION 2>/dev/null | awk -F'[go.]' '{ if ($$3 > 1 || ($$3 == 1 && $$4 >= 25)) print "sim" }')
+FERRAMENTAS := servico carga comparar assinante
+
+.PHONY: preflight build pacotes subir v1 v2 acompanhar parar captura comparar limpar servidor palco versao simular avaliar fumaca guardas checar
 
 preflight:
 	@./preflight.sh
 
 build:
+ifeq ($(GO_OK),sim)
 	@mkdir -p bin
 	@go build -o bin/ ./estacao3/...
+else
+	@for f in $(FERRAMENTAS); do test -x bin/$$f || { echo "sem Go 1.25 ou mais novo, e sem bin/$$f: rode make preflight"; exit 1; }; done
+endif
+
+# Os pacotes que a release publica: as ferramentas da estação 3 para amd64 e arm64,
+# estáticas, e o SHA256SUMS que o preflight confere.
+pacotes:
+	@rm -rf dist && mkdir -p dist
+	@for a in amd64 arm64; do \
+	  d=dist/kit-linux-$$a; mkdir -p $$d; \
+	  CGO_ENABLED=0 GOOS=linux GOARCH=$$a go build -trimpath -ldflags='-s -w' -o $$d/ ./estacao3/... || exit 1; \
+	  tar -C $$d --owner=0 --group=0 --numeric-owner -czf dist/kit-linux-$$a.tar.gz $(FERRAMENTAS) || exit 1; \
+	  rm -rf $$d; \
+	done
+	@cd dist && sha256sum kit-linux-*.tar.gz > SHA256SUMS && cat SHA256SUMS
 
 # Sobe o estoque, a api na VERSAO pedida e a carga, cada um na própria sessão
 # (setsid): o Ctrl-C do acompanhamento não derruba o serviço.

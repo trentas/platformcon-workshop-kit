@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Preflight do kit: confere a máquina, instala o ptop com as capabilities,
-# compila as ferramentas e faz uma captura de teste de 5 segundos.
+# compila as ferramentas (ou, sem Go 1.25, baixa as da release do kit) e faz
+# uma captura de teste de 5 segundos.
 #
 # Rode na máquina (ou VM) Linux que você vai levar ao workshop, até 04/11.
 # No fim ele imprime um resumo para colar no formulário.
@@ -53,16 +54,31 @@ if command -v systemd-detect-virt >/dev/null && systemd-detect-virt --container 
   aviso "parece um container; o workshop foi testado em Linux nativo e em VM"
 fi
 
+# Num sistema de arquivos montado com nosuid (o /tmp costuma ser), o kernel
+# ignora as file capabilities: o setcap funciona e o ptop roda sem elas.
+if command -v findmnt >/dev/null && findmnt -no OPTIONS -T . | tr ',' '\n' | grep -qx nosuid; then
+  falha "a pasta do kit está em $(findmnt -no TARGET -T .), montado com nosuid: ali o kernel ignora as capabilities. Clone o kit na sua home"
+fi
+
 if sudo true; then
   ok "sudo"
 else
   falha "sem sudo: ele é preciso uma vez, para aplicar as capabilities no ptop"
 fi
 
+# O Go é opcional: com 1.25 ou mais novo, as ferramentas são compiladas aqui;
+# sem ele, vêm prontas da release do kit. A mesma regra está no Makefile (GO_OK).
+go_ok=""
 if command -v go >/dev/null; then
-  ok "$(go version)"
+  gv="$(go env GOVERSION 2>/dev/null)"
+  if [ "$(echo "$gv" | awk -F'[go.]' '{ if ($3 > 1 || ($3 == 1 && $4 >= 25)) print "sim" }')" = sim ]; then
+    ok "$(go version)"
+    go_ok=1
+  else
+    ok "$gv é anterior ao 1.25: as ferramentas vêm da release do kit"
+  fi
 else
-  falha "Go não encontrado: instale o Go 1.25 ou mais novo (https://go.dev/dl)"
+  ok "sem Go: as ferramentas vêm da release do kit"
 fi
 
 echo
@@ -104,10 +120,28 @@ fi
 
 echo
 echo "== ferramentas do kit"
-if command -v go >/dev/null && make -s build; then
-  ok "compiladas em bin/"
-else
-  falha "não compilaram"
+if [ -n "$go_ok" ]; then
+  if make -s build; then
+    ok "compiladas em bin/"
+    anota "ferramentas=compiladas"
+  else
+    falha "não compilaram"
+  fi
+elif [ -n "$goarch" ]; then
+  base="${KIT_BINARIOS_URL:-https://github.com/trentas/platformcon-workshop-kit/releases/latest/download}"
+  pacote="kit-linux-$goarch.tar.gz"
+  mkdir -p "$tmp/kit"
+  if curl -fsSL -o "$tmp/kit/$pacote" "$base/$pacote" && curl -fsSL -o "$tmp/kit/SHA256SUMS" "$base/SHA256SUMS"; then
+    if (cd "$tmp/kit" && grep " $pacote\$" SHA256SUMS | sha256sum -c - >/dev/null); then
+      tar -xzf "$tmp/kit/$pacote" -C bin
+      ok "baixadas da release do kit e conferidas pelo SHA256SUMS"
+      anota "ferramentas=release"
+    else
+      falha "o checksum do $pacote não confere; não instalei"
+    fi
+  else
+    falha "não consegui baixar $base/$pacote; instale o Go 1.25 ou mais novo (https://go.dev/dl) e rode de novo"
+  fi
 fi
 
 echo

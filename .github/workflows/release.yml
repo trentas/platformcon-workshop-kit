@@ -1,0 +1,53 @@
+name: release
+
+# Uma tag v* publica as ferramentas da estação 3 compiladas para amd64 e arm64,
+# com o SHA256SUMS que o preflight confere quando a máquina não tem Go 1.25.
+# Sem tag (workflow_dispatch), gera os mesmos pacotes como artefato e não publica nada.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pacotes:
+    name: Pacotes amd64 e arm64
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+      - run: make pacotes
+      - name: O pacote amd64 roda no runner
+        run: |
+          mkdir -p /tmp/k && tar -xzf dist/kit-linux-amd64.tar.gz -C /tmp/k
+          /tmp/k/comparar -h > /tmp/k/ajuda.txt 2>&1 || test $? -eq 2
+          grep -q 'nome da captura' /tmp/k/ajuda.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pacotes
+          path: dist/
+
+  publicar:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: pacotes
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: pacotes
+          path: dist
+      - name: Publicar a release com os pacotes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/kit-linux-amd64.tar.gz dist/kit-linux-arm64.tar.gz dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
+            --notes "Ferramentas da estação 3 (servico, carga, comparar, assinante) para Linux amd64 e arm64. Sem Go 1.25 ou mais novo na máquina, o make preflight baixa o pacote da sua arquitetura e confere o SHA256SUMS."

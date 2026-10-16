@@ -19,16 +19,17 @@ Você precisa de:
 - Linux nativo ou uma VM Linux (no Mac com Apple Silicon: UTM, Parallels, Lima ou OrbStack);
 - kernel 5.8 ou mais novo, com BTF (`/sys/kernel/btf/vmlinux`), em amd64 ou arm64;
 - `sudo`, uma vez, para aplicar as capabilities no ptop;
-- Go 1.25 ou mais novo, para compilar as ferramentas do kit;
+- git e make;
+- Go 1.25 ou mais novo é opcional: sem ele, o preflight baixa as ferramentas já compiladas da release do kit;
 - um agente de IA compatível com MCP (Claude Code, Cursor, VS Code, Gemini CLI, Codex…), para a estação 1.
 
-Clone o kit **no disco da própria máquina ou VM** (não numa pasta compartilhada com o host: o `setcap` precisa de atributos estendidos que essas pastas costumam não ter) e rode:
+Clone o kit **na sua home, no disco da própria máquina ou VM**. Numa pasta compartilhada com o host, o `setcap` falha por falta de atributos estendidos. No `/tmp`, que costuma ser montado com `nosuid`, o `setcap` funciona e o kernel ignora as capabilities. O preflight acusa os dois casos. Depois rode:
 
 ```bash
 make preflight
 ```
 
-O preflight confere a máquina, baixa o [ptop](https://github.com/trentas/ptop) da release (conferindo o `SHA256SUMS`), aplica as capabilities, compila as ferramentas e faz uma captura de teste de 5 segundos. No fim ele imprime uma linha para colar no formulário do workshop.
+O preflight confere a máquina, baixa o [ptop](https://github.com/trentas/ptop) da release (conferindo o `SHA256SUMS`), aplica as capabilities, compila as ferramentas (sem Go, baixa as da release do kit, também conferidas pelo `SHA256SUMS`) e faz uma captura de teste de 5 segundos. No fim ele imprime uma linha para colar no formulário do workshop.
 
 ### Sobre as capabilities
 
@@ -189,6 +190,10 @@ make guardas
 `guardas/catch-vazio.ts` varre `servidor/tools` e recusa todo `catch` que devolve lista vazia sem declarar a fonte que falhou. A forma certa é `return { erros: null, ...semFonte("logs", erro) }` (helper em `servidor/fontes.ts`). A exceção, quando é de propósito, fica escrita no código com o comentário `guarda:catch-vazio-proposital` e aparece no relatório: é o caso da v1 de `buscar_erros`.
 
 A guarda tem a sua própria guarda: o relatório falha se a varredura não leu nenhum arquivo, e o teste (`guardas/catch-vazio.test.ts`) confere que a regra reconhece o padrão proibido num exemplo e ignora o padrão dentro de comentário.
+
+## Release
+
+Uma tag `v*` dispara `.github/workflows/release.yml`: as ferramentas da estação 3 compiladas para amd64 e arm64 (`kit-linux-<arch>.tar.gz`) e o `SHA256SUMS` vão para a release, de onde o preflight as baixa quando não há Go. `make pacotes` gera os mesmos arquivos em `dist/`. Sem tag, o workflow roda sob demanda e deixa os pacotes como artefato, sem publicar.
 
 ## Estrutura
 
