@@ -1,10 +1,10 @@
 # Rubrica do avaliador
 
-versão: 2026-10-16.1
+versão: 2026-10-16.2
 
 Você avalia as sessões de agentes de IA que usaram um servidor MCP de uma plataforma interna. O objetivo é encontrar **defeitos da plataforma**, não do agente: uma tool que levou o agente a errar, que faltou ou que obrigou o agente a dar voltas.
 
-Você não vê as perguntas nem as respostas dos agentes. Vê só a **forma** das sessões: quais tools foram chamadas, em que ordem, com que status, quantos itens cada resposta trouxe e quais fontes a resposta declarou não ter lido. Os números da sala já vêm calculados, no bloco "observado".
+Você não vê as perguntas nem as respostas dos agentes. Vê só a **forma** das sessões: quais tools foram chamadas, em que ordem, com que status, quantos itens cada resposta trouxe e quais fontes a resposta declarou não ter lido. Vê também o estado das fontes na telemetria da plataforma durante as sessões, que o agente não vê. Os números da sala já vêm calculados, no bloco "observado".
 
 ## Os sinais
 

@@ -104,7 +104,7 @@ Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request 
 O servidor de exemplo se chama `plataforma` e tem quatro tools: `listar_servicos`, `listar_deploys`, `buscar_erros` e `status_fontes`. A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
 
 ```bash
-make servidor                 # sobe em http://127.0.0.1:3000/mcp; painel em /painel (ADMIN_TOKEN padrão: dev)
+make servidor                 # MCP em http://127.0.0.1:3000/mcp; painel só local em http://127.0.0.1:3001/painel (ADMIN_TOKEN padrão: dev)
 make simular SESSOES=20       # ensaio: 20 sessões simuladas, com as três formas
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'content-type: application/json' \
      -d '{"versao":"v2"}' http://127.0.0.1:3000/admin/versao      # troca a versão no ar
@@ -116,7 +116,27 @@ make avaliar VERSAO=v1 SECO=1 # só o observado, sem chamar o modelo
 - **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da lista vazia: parou, conferiu a fonte ou procurou outra explicação. Uma sessão conta como encerrada depois de 30 s sem chamada.
 - **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
 
-Para publicar o servidor: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio PORT=3000 ADMIN_TOKEN=... node servidor/index.ts`, atrás de um proxy com TLS. Requer Node 22.18 ou mais novo (roda o TypeScript direto).
+**Publicar o servidor para a sala.** Só a porta do MCP sai para fora; o painel escuta em `127.0.0.1` numa porta separada (`PAINEL_PORT`, 3001), porque ele consulta o servidor a cada 2 s e, por um túnel com cota, meia sala com o painel aberto esgotaria a cota no meio da estação. Com o ngrok:
+
+```bash
+ngrok http 3000                                                    # mostra o domínio, ex.: nome.ngrok-free.dev
+ALLOWED_HOSTS=nome.ngrok-free.dev ADMIN_TOKEN=... make servidor    # aceita o domínio público e segue aceitando localhost
+```
+
+O plano gratuito do ngrok tem um domínio fixo por conta e 20 mil requisições por mês; uma sala de 50 pessoas com duas perguntas cada usa perto de mil. Para quem abre o domínio no navegador, o ngrok mostra uma página de aviso; clientes MCP não são afetados. Com proxy próprio: `HOST=0.0.0.0 ALLOWED_HOSTS=mcp.seu-dominio`, atrás de TLS. Requer Node 22.18 ou mais novo (roda o TypeScript direto).
+
+`TOOLS_OCULTAS=status_fontes` tira a tool do anúncio (ver "Resultados com agentes reais").
+
+### Resultados com agentes reais
+
+16/10/2026, Claude Code 2.1 com Opus, Sonnet e Haiku, a pergunta do slide, servidor pelo ngrok, sem outras ferramentas além do MCP:
+
+| Servidor | v1 (lista vazia) | v2 (`null` com a fonte declarada) |
+|---|---|---|
+| Com `status_fontes` anunciada | 9 de 9 chamaram `status_fontes` e responderam que não dava para saber | 6 de 6 também acertaram; as sessões não ficaram mais curtas |
+| Sem `status_fontes` | 3 de 3 responderam que não houve erros | 3 de 3 responderam que não conseguiram saber |
+
+Com uma tool para conferir a fonte, os agentes testados contornaram o defeito; sem ela, a resposta deles dependeu só do que `buscar_erros` disse. O avaliador recebe, além dos traces, o estado das fontes na telemetria da plataforma, que o agente não vê: é assim que ele acha o sinal falso mesmo quando nenhuma sessão conferiu a fonte.
 
 ## Estação 2: verificações de CI para código escrito por agentes
 

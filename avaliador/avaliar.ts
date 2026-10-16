@@ -12,6 +12,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { agrupar, ehVazioDeErros, type Sessao } from "../servidor/sessoes.ts";
 import { lerTraces, type LinhaTrace } from "../servidor/trace.ts";
+import { estadoDasFontes } from "../servidor/backend.ts";
 import { tools } from "../servidor/tools/index.ts";
 import type { Versao } from "../servidor/tools/tipos.ts";
 
@@ -66,6 +67,11 @@ function observar(sessoes: Sessao[]): string[] {
     `${s(deploys.length)} seguiram para listar_deploys depois dessa resposta, sem chamar status_fontes`,
   ];
   if (andamento.length) linhas.push(`${s(andamento.length)} ainda em andamento na leitura`);
+  // A telemetria da própria plataforma, que o agente não vê: o avaliador cruza
+  // os traces com o estado das fontes no período. Numa plataforma real, isto
+  // vem do monitoramento dos backends; no kit, do estado fixo do backend de exemplo.
+  const fontes = Object.entries(estadoDasFontes()).map(([f, e]) => `${f} ${e}`).join(", ");
+  linhas.push(`estado das fontes na telemetria da plataforma durante as sessões: ${fontes}`);
   return linhas;
 }
 

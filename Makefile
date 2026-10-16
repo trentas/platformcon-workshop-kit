@@ -71,6 +71,7 @@ limpar: parar
 
 # --- estação 1: o servidor MCP de exemplo, o painel e o avaliador (lado do instrutor)
 
+# MCP na PORT (3000), painel só local na PAINEL_PORT (3001). Para publicar: ALLOWED_HOSTS=<domínio>.
 servidor:
 	@ADMIN_TOKEN=$${ADMIN_TOKEN:-dev} node servidor/index.ts
 
