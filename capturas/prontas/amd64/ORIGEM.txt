@@ -1,0 +1,3 @@
+máquina: x86_64, kernel 6.17.0-1022-azure
+ptop v1.9.0 (commit 44acd7e5eb7c2ec113b6c10f6d85322c73191f22, built 2026-10-15T17:34:25Z)
+capturas de 30 s, em 2026-10-16

@@ -1,0 +1,17 @@
+comparar v1-a × v1-parcial   (ruído: v1-a × v1-b)
+
+coletores diferentes entre v1-a e v1-parcial:
+  cpu       v1-a: active (eBPF)  v1-parcial: active (/proc)
+  futex     v1-a: active (eBPF)  v1-parcial: failed
+  heap      v1-a: active (eBPF)  v1-parcial: failed
+  io        v1-a: active (eBPF)  v1-parcial: active (/proc)
+  lifecycle v1-a: active (eBPF)  v1-parcial: failed
+  memory    v1-a: active (eBPF)  v1-parcial: active (/proc)
+  network   v1-a: active (eBPF)  v1-parcial: failed
+  security  v1-a: active (eBPF)  v1-parcial: failed
+  signals   v1-a: active (eBPF)  v1-parcial: failed
+  syscalls  v1-a: active (eBPF)  v1-parcial: failed
+  threads   v1-a: active (eBPF)  v1-parcial: active (/proc)
+
+números não comparados:
+a diferença entre as capturas pode ser só de instrumentação.

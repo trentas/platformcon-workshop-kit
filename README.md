@@ -102,31 +102,29 @@ O que cada alvo faz:
 - `make captura NOME=x` roda o ptop por `DURACAO` segundos (padrão 60) sobre a api, com `--serve unix:///tmp/ptop.sock --export`, e guarda em `capturas/x.jsonl` o stream e, em `capturas/x.carga.jsonl`, o log da carga do mesmo período.
 - `make comparar A=x B=y` compara as duas capturas por request. Antes dos números, compara o estado de cada coletor nas duas: se a instrumentação difere, a comparação é recusada. Com uma `v1-b` no disco, cada métrica sai com a variação entre `v1-a` e `v1-b` ao lado, e só o que passa dela é marcado.
 
-### Resultado na máquina de teste
+### Resultado nas capturas de reserva
 
-arm64, kernel 7.0, ptop 1.9.0, capturas de 30 s:
+As capturas de `capturas/prontas/` têm 30 s cada, com o ptop 1.9.0. O `ORIGEM.txt` de cada pasta diz onde foram feitas. `make comparar PRONTAS=1 A=v1-a B=v2` reproduz a tabela da sua arquitetura; `ARCH=amd64` ou `ARCH=arm64` escolhe a outra. Em arm64 (kernel 7.0):
 
 ```
 métrica                     v1-a    v2      diferença   ruído
-latência p50 (ms)           11,25   11,82   +0,56       0,00    dentro do ruído
-latência p99 (ms)           14,36   15,83   +1,47       1,47    dentro do ruído
+latência p50 (ms)           11,82   11,82   +0,00       0,00    dentro do ruído
+latência p99 (ms)           13,68   14,36   +0,68       0,00    dentro do ruído
 connect() por request       0,00    1,00    +1,00       0,00    acima do ruído
 socket() por request        0,00    1,00    +1,00       0,00    acima do ruído
 close() por request         0,00    1,00    +1,00       0,00    acima do ruído
-setsockopt() por request    0,00    5,01    +5,00       0,00    acima do ruído
+setsockopt() por request    0,00    5,01    +5,01       0,00    acima do ruído
+epoll_pwait() por request   5,59    8,10    +2,51       0,06    acima do ruído
+futex() por request         10,96   13,46   +2,50       0,00    acima do ruído
+nanosleep() por request     6,63    8,71    +2,08       0,06    acima do ruído
+epoll_ctl() por request     0,00    2,00    +2,00       0,00    acima do ruído
 ```
 
-Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request passou a abrir e fechar uma conexão.
+Pela latência, a v2 passaria num teste de carga comum. No kernel, cada request passou a abrir e fechar uma conexão (connect, socket, close, setsockopt, epoll_ctl), e o runtime do Go passou a fazer de 2 a 4 chamadas a mais de nanosleep, futex e epoll_pwait. A causa exata dessas três não foi medida.
 
-Numa VM amd64 limpa (o job sob demanda do CI: Ubuntu 24.04, kernel 6.17, capturas de 30 s), connect, socket, close, setsockopt e epoll_ctl mudam do mesmo jeito, e a latência fica dentro do ruído. Três syscalls do runtime do Go também passam do ruído:
+Numa VM amd64 limpa (o job sob demanda do CI: Ubuntu 24.04, kernel 6.17), as syscalls mudam do mesmo jeito. A latência é a métrica instável. Nas capturas de reserva de amd64, a mediana não mudou e o p99 foi de 12,41 para 13,68 ms. São dois degraus do histograma, e a variação ficou um pouco acima do piso de 10%. Numa rodada anterior na mesma VM, o p99 ficou dentro do ruído.
 
-```
-nanosleep() por request     6,32    10,22   +3,90       0,16    acima do ruído
-futex() por request         12,87   15,98   +3,11       0,06    acima do ruído
-epoll_pwait() por request   5,36    7,88    +2,51       0,04    acima do ruído
-```
-
-Elas não apareceram na máquina arm64. Quem roda em amd64 deve ver essas linhas também.
+Sem Linux funcionando, use as capturas de reserva no lugar das suas: `make comparar PRONTAS=1 A=v1-a B=v2`, `A=v1-a B=v1-b` e `A=v1-a B=v1-parcial`. Para medir o ruído contra uma v1-a sua sem ter feito a v1-b, copie a de reserva: `cp capturas/prontas/<arch>/v1-b.* capturas/`.
 
 ### Como a comparação conta
 
@@ -205,6 +203,8 @@ estacao3/servico     api e estoque, v1 e v2
 estacao3/carga       gerador de carga com log de contadores acumulados
 estacao3/comparar    comparação de duas capturas, por request, contra o ruído
 estacao3/assinante   cliente gRPC do stream do ptop, sem privilégio
+estacao3/capturas-de-reserva.sh   gera as capturas de capturas/prontas/<arch>/
+capturas/prontas/    capturas de reserva da estação 3, de arm64 e amd64
 preflight.sh         checagem da máquina, instalação do ptop e captura de teste
 ```
 

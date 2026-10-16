@@ -1,0 +1,20 @@
+comparar v1-a × v1-b
+
+coletores que não rodaram nas capturas: tls (disabled)
+janela v1-a       29,0 s, 1450 requests, 0 erros
+janela v1-b       29,0 s, 1450 requests, 0 erros
+
+métrica                     v1-a    v1-b    diferença   ruído   
+latência p50 (ms)           11,25   11,25   +0,00       —       sem captura de ruído
+latência p99 (ms)           12,41   12,41   +0,00       —       sem captura de ruído
+connect() por request       0,00    0,00    +0,00       —       sem captura de ruído
+socket() por request        0,00    0,00    +0,00       —       sem captura de ruído
+close() por request         0,00    0,00    +0,00       —       sem captura de ruído
+nanosleep() por request     6,91    7,13    +0,23       —       sem captura de ruído
+futex() por request         14,11   14,04   -0,07       —       sem captura de ruído
+epoll_pwait() por request   5,35    5,32    -0,03       —       sem captura de ruído
+sched_yield() por request   0,21    0,20    -0,01       —       sem captura de ruído
+write() por request         2,07    2,07    -0,00       —       sem captura de ruído
+
+Nenhuma diferença foi marcada: falta uma segunda captura da versão de A para medir o ruído
+(make captura NOME=v1-b). Se A e B já são a mesma versão, a coluna diferença é o próprio ruído.

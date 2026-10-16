@@ -1,0 +1,18 @@
+comparar v1-a × v2   (ruído: v1-a × v1-b)
+
+coletores que não rodaram nas capturas: tls (disabled)
+janela v1-a       29,0 s, 1450 requests, 0 erros
+janela v2         29,0 s, 1450 requests, 0 erros
+janela v1-b       29,0 s, 1450 requests, 0 erros
+
+métrica                     v1-a    v2      diferença   ruído   
+latência p50 (ms)           11,25   11,25   +0,00       0,00    dentro do ruído
+latência p99 (ms)           12,41   13,68   +1,27       0,00    acima do ruído
+connect() por request       0,00    1,00    +1,00       0,00    acima do ruído
+socket() por request        0,00    1,00    +1,00       0,00    acima do ruído
+close() por request         0,00    1,00    +1,00       0,00    acima do ruído
+setsockopt() por request    0,00    5,00    +5,00       0,00    acima do ruído
+nanosleep() por request     6,91    11,42   +4,52       0,23    acima do ruído
+futex() por request         14,11   17,53   +3,41       0,07    acima do ruído
+epoll_pwait() por request   5,35    7,70    +2,35       0,03    acima do ruído
+epoll_ctl() por request     0,00    2,00    +2,00       0,00    acima do ruído
