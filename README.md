@@ -189,6 +189,20 @@ make guardas
 
 A guarda tem a sua própria guarda: o relatório falha se a varredura não leu nenhum arquivo, e o teste (`guardas/catch-vazio.test.ts`) confere que a regra reconhece o padrão proibido num exemplo e ignora o padrão dentro de comentário.
 
+## VMs reserva (lado do instrutor)
+
+`vm-reserva/cloud-init.yaml` sobe uma VM para a estação 3 em qualquer nuvem que aceite cloud-init (o campo user-data), com Ubuntu 24.04, 2 vCPU e 4 GB. Ela cria o usuário `kit`, com sudo e entrada por SSH com senha, clona o kit, roda o preflight com as ferramentas da release e se desliga sozinha 6 horas depois.
+
+Cada VM precisa de uma senha própria, que o monitor entrega ao participante junto com o IP:
+
+```bash
+sed "s/TROQUE-ESTA-SENHA/$(openssl rand -base64 12 | tr -d '/+=')/" vm-reserva/cloud-init.yaml > /tmp/vm-01.yaml
+```
+
+Se a nuvem permitir, restrinja a porta 22 ao IP de saída da Wi-Fi do evento. Para conferir uma VM: `ssh kit@<ip> cat platformcon-workshop-kit/preflight-resultado.txt`.
+
+Até aqui, o arquivo só teve o schema validado (`cloud-init schema`). Ele ainda não subiu numa nuvem, porque clona o kit e baixa as ferramentas da release, e as duas coisas dependem do repo público.
+
 ## Release
 
 Uma tag `v*` dispara `.github/workflows/release.yml`: as ferramentas da estação 3 compiladas para amd64 e arm64 (`kit-linux-<arch>.tar.gz`) e o `SHA256SUMS` vão para a release, de onde o preflight as baixa quando não há Go. `make pacotes` gera os mesmos arquivos em `dist/`. Sem tag, o workflow roda sob demanda e deixa os pacotes como artefato, sem publicar.
@@ -206,6 +220,7 @@ estacao3/assinante   cliente gRPC do stream do ptop, sem privilégio
 estacao3/capturas-de-reserva.sh   gera as capturas de capturas/prontas/<arch>/
 capturas/prontas/    capturas de reserva da estação 3, de arm64 e amd64
 preflight.sh         checagem da máquina, instalação do ptop e captura de teste
+vm-reserva/          cloud-init das VMs reserva da estação 3
 ```
 
 ## Licença

@@ -1,0 +1,39 @@
+#cloud-config
+# VM reserva da estação 3, para quem não conseguiu preparar Linux na própria
+# máquina. Serve em qualquer nuvem que aceite cloud-init, com Ubuntu 24.04
+# (kernel com BTF), 2 vCPU e 4 GB.
+#
+# Antes de criar cada VM, troque TROQUE-ESTA-SENHA por uma senha própria dela:
+# o participante entra com "ssh kit@<ip>" e essa senha. O usuário kit tem sudo,
+# porque o passo 6 da estação 3 mexe nas capabilities do ptop. A VM é
+# descartável: ela se desliga sozinha 6 horas depois de criada.
+#
+# O kit é clonado em /home/kit/platformcon-workshop-kit e o preflight roda no
+# boot, com as ferramentas da release do kit (sem Go). O resultado fica em
+# preflight-resultado.txt, na pasta do kit.
+
+users:
+  - name: kit
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: false
+
+ssh_pwauth: true
+chpasswd:
+  expire: false
+  users:
+    - name: kit
+      password: TROQUE-ESTA-SENHA
+      type: text
+
+package_update: true
+packages:
+  - git
+  - make
+  - curl
+  - libcap2-bin
+
+runcmd:
+  - [shutdown, -h, "+360", "VM reserva do workshop: desligamento programado"]
+  - [sudo, -u, kit, git, clone, --depth, "1", "https://github.com/trentas/platformcon-workshop-kit", /home/kit/platformcon-workshop-kit]
+  - [sudo, -u, kit, make, -C, /home/kit/platformcon-workshop-kit, preflight]
