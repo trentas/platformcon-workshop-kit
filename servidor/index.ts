@@ -140,7 +140,7 @@ painel.get("/painel", (_req: Request, res: Response) => {
   res.type("html").send(paginaPainel());
 });
 painel.get("/painel/dados", (_req: Request, res: Response) => {
-  res.json(dadosDoPainel(gravador.linhas(), estado.versao));
+  res.json(dadosDoPainel(gravador.linhas(), estado.versao, Date.now(), !OCULTAS.has("status_fontes")));
 });
 painel.post("/admin/versao", (req: Request, res: Response) => {
   const v = req.body?.versao;
