@@ -53,30 +53,43 @@ export function paginaPainel(): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Painel da sala</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-  :root { --fundo:#12161C; --cartao:#1C222B; --borda:#2C3440; --texto:#F4F1EA; --suave:#B8C2CC; --apagado:#8A95A1; --ambar:#E8A33D; --azul:#5B9BD5; }
+  /* Tema claro do WhyStack, o mesmo do deck: fundo levemente tingido, cartões
+     brancos com filete, texto navy, cerulean para o que está no ar. Sem as
+     fontes (notebook sem rede), cai nas do sistema. */
+  :root {
+    --fundo:#f6fafc; --cartao:#ffffff; --muted:#eef4f7; --borda:#dae4e8;
+    --texto:#0d2242; --suave:#546673; --primaria:#006f8f; --primaria-sutil:#dbf3fb; --primaria-sutil-texto:#006685;
+    --alerta:#965000; --alerta-sutil:#fbeedb;
+    --display:"Montserrat", system-ui, sans-serif; --texto-ui:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif; --mono:"JetBrains Mono", ui-monospace, monospace;
+  }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--fundo); color:var(--texto); font: 20px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif; padding:24px 32px; }
-  h1 { font-size:34px; margin:0 0 4px; }
-  .sub { color:var(--apagado); margin:0 0 16px; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font: 20px/1.4 var(--texto-ui); padding:24px 32px; }
+  h1 { font: 700 34px/1.15 var(--display); letter-spacing:-0.01em; margin:0 0 4px; }
+  .sub { color:var(--suave); margin:0 0 16px; }
   .colunas { display:grid; grid-template-columns: 1fr 1fr; gap:24px; }
   @media (max-width: 900px) { .colunas { grid-template-columns: 1fr; } }
-  .versao { background:var(--cartao); border:1px solid var(--borda); border-radius:16px; padding:20px 24px; }
-  .versao.atual { border-color:var(--ambar); }
-  .versao h2 { margin:0 0 4px; font-size:32px; }
-  .versao h2 small { font-size:18px; color:var(--ambar); font-weight:500; margin-left:12px; }
+  .versao { background:var(--cartao); border:1px solid var(--borda); border-radius:8px; padding:20px 24px; box-shadow:0 1px 2px rgba(13,34,66,.05); }
+  .versao.atual { border-color:var(--primaria); box-shadow:0 0 0 3px rgba(0,111,143,.25); }
+  .versao h2 { margin:0 0 4px; font: 700 32px/1.2 var(--display); display:flex; align-items:center; gap:12px; }
+  .versao h2 small { font: 500 16px/1 var(--texto-ui); color:var(--primaria-sutil-texto); background:var(--primaria-sutil); border-radius:9999px; padding:6px 12px; }
   .resumo { color:var(--suave); margin:0 0 12px; }
   .numeros { display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:14px; }
-  .numero { background:var(--fundo); border-radius:12px; padding:10px 16px; }
-  .numero b { display:block; font-size:44px; line-height:1.1; }
+  .numero { background:var(--muted); border-radius:4px; padding:10px 16px; }
+  .numero b { display:block; font: 700 44px/1.1 var(--display); font-variant-numeric: tabular-nums; }
   .numero span { color:var(--suave); font-size:18px; }
-  .numero.destaque b { color:var(--ambar); }
+  .numero.destaque b { color:var(--alerta); }
+  .selo { display:inline-flex; align-items:center; gap:6px; margin-top:6px; padding:2px 10px; border-radius:9999px; font-size:16px; font-weight:500;
+          color:var(--alerta); background:var(--alerta-sutil); border:1px solid rgba(150,80,0,.35); }
+  .selo svg { width:16px; height:16px; flex:none; }
   table { width:100%; border-collapse:collapse; font-size:18px; }
   th, td { text-align:left; padding:6px 6px; border-top:1px solid var(--borda); }
-  th { color:var(--apagado); font-weight:500; }
+  th { color:var(--suave); font-weight:500; }
   td.n { text-align:right; width:4em; font-variant-numeric: tabular-nums; }
-  code { font-family: ui-monospace, "JetBrains Mono", monospace; font-size:17px; }
-  .vazio { color:var(--apagado); }
+  code { font-family: var(--mono); font-size:17px; }
+  .vazio { color:var(--suave); }
 </style>
 </head>
 <body>
@@ -95,9 +108,15 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 function coluna(v, d, atual, conferirDisponivel) {
   const valores = { ...d.desfechos, aviso: d.vaziosDeclarados };
   const chaves = ["parou_no_vazio", "aviso", "outra_explicacao", "em_andamento"].concat(conferirDisponivel ? ["conferiu_a_fonte"] : []);
-  // Em âmbar só quem parou sem ter recebido o aviso: parar depois do aviso é a resposta certa.
-  const numeros = chaves.map((k) =>
-    '<div class="numero' + (k === "parou_no_vazio" && d.pararamSemAviso > 0 ? " destaque" : "") + '"><b>' + valores[k] + '</b><span>' + rotulos[k] + '</span></div>').join("");
+  // Destacado só quem parou sem ter recebido o aviso: parar depois do aviso é a resposta certa.
+  // Cor de estado vem sempre com ícone e rótulo: o selo diz quantas pararam sem o aviso.
+  const alerta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  const numeros = chaves.map((k) => {
+    const destaque = k === "parou_no_vazio" && d.pararamSemAviso > 0;
+    const selo = destaque ? '<br><span class="selo">' + alerta + d.pararamSemAviso + ' sem o aviso</span>' : "";
+    return '<div class="numero' + (destaque ? " destaque" : "") + '"><b>' + valores[k] + '</b><span>' + rotulos[k] + '</span>' + selo + '</div>';
+  }).join("");
   const formas = d.formas.length
     ? d.formas.map((f) => '<tr><td><code>' + esc(f.sequencia) + '</code></td><td class="n">' + f.sessoes + '</td></tr>').join("")
     : '<tr><td class="vazio" colspan="2">nenhuma sessão ainda</td></tr>';
@@ -108,11 +127,16 @@ function coluna(v, d, atual, conferirDisponivel) {
     '<div class="numeros">' + numeros + '</div>' +
     '<table><tr><th>sequência de tools</th><th class="n">sessões</th></tr>' + formas + '</table></section>';
 }
-// Cabe na tela sem rolar: o telão pode ter a resolução do notebook.
+// Ocupa a tela do telão sem rolar: cresce até 1,6× quando sobra espaço e
+// encolhe até 0,6× quando falta (o telão pode ter a resolução do notebook).
 function ajusta() {
-  document.body.style.zoom = "";
-  const f = Math.min(1, window.innerHeight / document.documentElement.scrollHeight);
-  if (f < 1) document.body.style.zoom = String(Math.max(f, 0.6));
+  const cabe = () => document.documentElement.scrollHeight <= window.innerHeight + 1;
+  let z = 1.6;
+  document.body.style.zoom = String(z);
+  while (!cabe() && z > 0.6) {
+    z = Math.round((z - 0.05) * 100) / 100;
+    document.body.style.zoom = String(z);
+  }
 }
 window.addEventListener("resize", ajusta);
 async function atualiza() {
