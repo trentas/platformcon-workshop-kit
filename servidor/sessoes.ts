@@ -27,12 +27,17 @@ export type Sessao = {
 // Sem chamada nova por este tempo, a sessão conta como encerrada.
 export const INATIVIDADE_MS = 30_000;
 
+// A sessão é a conexão MCP dentro de uma versão do servidor. Um chat novo no
+// mesmo agente pode reaproveitar a conexão; sem separar por versão, a pergunta
+// feita depois da troca entraria como continuação da sessão da v1 e sumiria da
+// coluna da v2. Cada lado conta como uma sessão.
 export function agrupar(linhas: LinhaTrace[], agora = Date.now(), inatividadeMs = INATIVIDADE_MS): Sessao[] {
   const porId = new Map<string, LinhaTrace[]>();
   for (const l of linhas) {
-    const lista = porId.get(l.sessao) ?? [];
+    const id = `${l.sessao}/${l.versao}`;
+    const lista = porId.get(id) ?? [];
     lista.push(l);
-    porId.set(l.sessao, lista);
+    porId.set(id, lista);
   }
   const out: Sessao[] = [];
   for (const [id, chamadas] of porId) {

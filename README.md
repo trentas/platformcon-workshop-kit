@@ -65,6 +65,16 @@ Reinicie o agente depois de mudar a configuração. Para conferir, peça ao agen
 
 Até aqui, só o Claude Code foi testado contra o servidor. As outras linhas seguem a documentação de cada agente e serão conferidas no ensaio. Se o seu agente conecta mas não lista as tools, acrescente o cabeçalho `ngrok-skip-browser-warning: 1` à configuração (ver "Publicar o servidor para a sala", abaixo).
 
+### A pergunta
+
+Abra uma sessão nova do agente e faça só esta pergunta, sem complementar:
+
+```
+O serviço pagamentos teve erros na última hora? Use o servidor plataforma.
+```
+
+Anote a resposta, sem corrigir nem insistir. Quando o servidor passar para a v2, abra outra sessão nova e faça a mesma pergunta. A configuração não muda.
+
 ## Estação 3: comparação de versões com eBPF
 
 O serviço tem duas versões. A `api` chama um `estoque` a cada request; a v1 reaproveita conexões (pool), a v2 abre uma conexão nova por request. O estoque simula 10 ms de trabalho.
@@ -89,7 +99,7 @@ make comparar A=v1-a B=v1-b            #    o próprio ruído
 
 sudo setcap cap_bpf,cap_perfmon+ep ./bin/ptop   # 6. capabilities incompletas
 ./bin/ptop --caps
-make v1 && make captura NOME=v1-parcial
+make captura NOME=v1-parcial           #    a v1 continua no ar desde a v1-b
 make comparar A=v1-a B=v1-parcial
 make preflight                         #    no fim: restaura o conjunto completo
 
@@ -146,7 +156,7 @@ make fumaca                   # teste de fumaça em portas próprias (3100 e 310
 ```
 
 - **O trace** (`traces/sala.jsonl`) tem uma linha por chamada: tool, argumentos estruturados, status, quantidade de itens, fontes declaradas como não lidas, ordem e duração. Argumento de texto livre vira tamanho e hash. O servidor nunca vê o prompt nem a resposta do agente.
-- **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da resposta sem erros: parou ou procurou outra explicação (e, com `status_fontes` anunciada, conferiu a fonte). Ao lado, quantas receberam o aviso de logs não lidos. O número de quem parou só ganha destaque, com um selo de alerta que diz quantas pararam sem o aviso, quando alguma sessão parou sem tê-lo recebido: parar depois do aviso é a resposta certa. O visual é o tema claro do WhyStack, o mesmo do deck. Uma sessão conta como encerrada depois de 30 s sem chamada. A página cresce ou encolhe para ocupar a tela sem rolar.
+- **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da resposta sem erros: parou ou procurou outra explicação (e, com `status_fontes` anunciada, conferiu a fonte). Ao lado, quantas receberam o aviso de logs não lidos. O número de quem parou só ganha destaque, com um selo de alerta que diz quantas pararam sem o aviso, quando alguma sessão parou sem tê-lo recebido: parar depois do aviso é a resposta certa. O visual é o tema claro do WhyStack, o mesmo do deck. Uma sessão conta como encerrada depois de 30 s sem chamada. Uma conexão MCP que atravessa a troca de versão (um chat novo no mesmo agente, sem reconectar) conta como uma sessão em cada versão. A página cresce ou encolhe para ocupar a tela sem rolar.
 - **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
 
 **Publicar o servidor para a sala.** O servidor roda na máquina de quem conduz. Só a porta do MCP sai para fora. O painel e as rotas de admin (`/admin/versao`, `/admin/traces`) escutam em `127.0.0.1`, numa porta separada (`PAINEL_PORT`, 3001), e não pedem senha. O painel consulta o servidor a cada 2 s: por um túnel com cota, meia sala com ele aberto esgotaria a cota no meio da estação. A troca de versão fica local porque nada que muda o servidor precisa estar na internet. Com o ngrok:

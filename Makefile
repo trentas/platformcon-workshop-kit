@@ -149,6 +149,7 @@ guardas:
 	@npx vitest run guardas --reporter=dot
 
 checar: guardas
+	@npx vitest run servidor --reporter=dot
 	@npx tsc --noEmit
 	@go vet ./...
 	@go test ./...

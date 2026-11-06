@@ -22,6 +22,8 @@ jobs:
       - run: npm ci
       - name: Guardas da estação 2
         run: make guardas
+      - name: Sessões do painel e do avaliador
+        run: npx vitest run servidor
       - name: Tipos
         run: npx tsc --noEmit
       - name: Fumaça da estação 1 (servidor, simulador, troca de versão, avaliador sem modelo)
