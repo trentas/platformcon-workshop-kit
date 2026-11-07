@@ -46,7 +46,7 @@ sudo setcap cap_bpf,cap_perfmon,cap_sys_admin,cap_dac_read_search,cap_sys_ptrace
 No dia, o servidor da sala fica em:
 
 ```
-https://crushed-dehydrate-fruit.ngrok-free.dev/mcp
+https://lesser-goldsmith-numerous.ngrok-free.dev/mcp
 ```
 
 Ele só responde durante o workshop. Depois, suba uma cópia local com `make servidor` e use `http://127.0.0.1:3000/mcp`.
