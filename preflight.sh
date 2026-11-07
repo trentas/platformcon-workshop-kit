@@ -7,7 +7,7 @@
 # No fim ele imprime um resumo para colar no formulário.
 set -uo pipefail
 
-PTOP_VERSAO="${PTOP_VERSAO:-1.9.0}"
+PTOP_VERSAO="${PTOP_VERSAO:-1.9.1}"
 CAPS="cap_bpf,cap_perfmon,cap_sys_admin,cap_dac_read_search,cap_sys_ptrace+ep"
 cd "$(dirname "$0")"
 
