@@ -2,6 +2,8 @@
 
 Kit do workshop da **PlatformCon São Paulo, 07/11/2026**. Do trace de uso à verificação no kernel, com MCP, CI e eBPF.
 
+Os slides do workshop: [`slides/quando-o-usuario-da-plataforma-e-um-agente.pdf`](slides/quando-o-usuario-da-plataforma-e-um-agente.pdf).
+
 São três blocos:
 
 | Bloco | O que se faz | Onde roda |
