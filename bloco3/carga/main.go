@@ -1,4 +1,4 @@
-// Gerador de carga da estação 3: chama a api numa taxa constante e mede a latência.
+// Gerador de carga do bloco 3: chama a api numa taxa constante e mede a latência.
 //
 // A cada segundo, acrescenta uma linha ao log com os contadores ACUMULADOS
 // (requests, erros e o histograma de latência). O make captura copia esse log
@@ -22,7 +22,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trentas/platformcon-workshop-kit/estacao3/internal/histo"
+	"github.com/trentas/platformcon-workshop-kit/bloco3/internal/histo"
 )
 
 // Linha é uma linha do log da carga. Os campos são acumulados desde o início.

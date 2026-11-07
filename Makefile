@@ -25,18 +25,18 @@ preflight:
 build:
 ifeq ($(GO_OK),sim)
 	@mkdir -p bin
-	@go build -o bin/ ./estacao3/...
+	@go build -o bin/ ./bloco3/...
 else
 	@for f in $(FERRAMENTAS); do test -x bin/$$f || { echo "sem Go 1.25 ou mais novo, e sem bin/$$f: rode make preflight"; exit 1; }; done
 endif
 
-# Os pacotes que a release publica: as ferramentas da estação 3 para amd64 e arm64,
+# Os pacotes que a release publica: as ferramentas do bloco 3 para amd64 e arm64,
 # estáticas, e o SHA256SUMS que o preflight confere.
 pacotes:
 	@rm -rf dist && mkdir -p dist
 	@for a in amd64 arm64; do \
 	  d=dist/kit-linux-$$a; mkdir -p $$d; \
-	  CGO_ENABLED=0 GOOS=linux GOARCH=$$a go build -trimpath -ldflags='-s -w' -o $$d/ ./estacao3/... || exit 1; \
+	  CGO_ENABLED=0 GOOS=linux GOARCH=$$a go build -trimpath -ldflags='-s -w' -o $$d/ ./bloco3/... || exit 1; \
 	  tar -C $$d --owner=0 --group=0 --numeric-owner -czf dist/kit-linux-$$a.tar.gz $(FERRAMENTAS) || exit 1; \
 	  rm -rf $$d; \
 	done
@@ -93,7 +93,7 @@ comparar: build
 limpar: parar
 	rm -rf run ptop-events-*.jsonl
 
-# --- estação 1: o servidor MCP de exemplo, o painel e o avaliador (lado do instrutor)
+# --- bloco 1: o servidor MCP de exemplo, o painel e o avaliador (lado do instrutor)
 
 # MCP na PORT (3000); painel e admin só locais, na PAINEL_PORT (3001). Para publicar: ALLOWED_HOSTS=<domínio>.
 servidor:
@@ -123,7 +123,7 @@ simular:
 avaliar:
 	@node avaliador/avaliar.ts --traces $${TRACES:-traces/sala.jsonl} --versao $${VERSAO:-v1} $(if $(SECO),--seco,)
 
-# Teste de fumaça da estação 1, em portas próprias (3100 e 3101): sessões simuladas
+# Teste de fumaça do bloco 1, em portas próprias (3100 e 3101): sessões simuladas
 # nas duas versões, a troca de versão pela porta local, a porta pública sem admin e
 # o observado do avaliador, sem chamar o modelo.
 fumaca:
@@ -142,7 +142,7 @@ fumaca:
 	  grep -Eq '\b6 dessas respostas eram erros: null' run/fumaca-v2.md; \
 	  echo "fumaça ok: v1 com lista vazia, v2 com a fonte declarada, admin fora da porta pública"
 
-# --- estação 2: a verificação de CI e a guarda da guarda
+# --- bloco 2: a verificação de CI e a guarda da guarda
 
 guardas:
 	@node guardas/rodar.ts servidor/tools

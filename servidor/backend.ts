@@ -1,7 +1,7 @@
 // O "backend" da plataforma de exemplo: dados fixos de uma empresa fictícia.
 //
 // A fonte de logs está fora do ar desde o início, de propósito. É o defeito que
-// a estação 1 descobre: na v1, buscar_erros transforma essa falha em lista vazia.
+// o bloco 1 descobre: na v1, buscar_erros transforma essa falha em lista vazia.
 
 export class FonteIndisponivel extends Error {
   fonte: string;

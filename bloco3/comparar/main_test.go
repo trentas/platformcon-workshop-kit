@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// A syscall que só a v2 faz é o achado principal da estação 3; ela não pode
+// A syscall que só a v2 faz é o achado principal do bloco 3; ela não pode
 // sumir da tabela porque a v1 não a chamou nenhuma vez.
 func TestSyscallQueSoBFazEntraNaTabela(t *testing.T) {
 	a := map[string]float64{"lat:p50": 11, "sys:connect": 0, "sys:socket": 0, "sys:close": 0, "sys:read": 5}

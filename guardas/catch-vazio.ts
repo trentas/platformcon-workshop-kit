@@ -1,4 +1,4 @@
-// Verificação de CI da estação 2: um catch dentro de uma tool não pode devolver
+// Verificação de CI do bloco 2: um catch dentro de uma tool não pode devolver
 // coleção vazia sem declarar a fonte que falhou.
 //
 // A regra é estreita de propósito. Ela procura, no fonte sem comentários, todo

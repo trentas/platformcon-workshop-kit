@@ -1,11 +1,11 @@
 #cloud-config
-# VM reserva da estação 3, para quem não conseguiu preparar Linux na própria
+# VM reserva do bloco 3, para quem não conseguiu preparar Linux na própria
 # máquina. Serve em qualquer nuvem que aceite cloud-init, com Ubuntu 24.04
 # (kernel com BTF), 2 vCPU e 4 GB.
 #
 # Antes de criar cada VM, troque TROQUE-ESTA-SENHA por uma senha própria dela:
 # o participante entra com "ssh kit@<ip>" e essa senha. O usuário kit tem sudo,
-# porque o passo 6 da estação 3 mexe nas capabilities do ptop. A VM é
+# porque o passo 6 do bloco 3 mexe nas capabilities do ptop. A VM é
 # descartável: ela se desliga sozinha 6 horas depois de criada.
 #
 # O kit é clonado em /home/kit/platformcon-workshop-kit e o preflight roda no

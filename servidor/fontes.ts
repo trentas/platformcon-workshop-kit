@@ -4,7 +4,7 @@
 // como null, nunca como lista vazia, e a resposta declara qual fonte não foi
 // lida e por quê. Lista vazia quer dizer "li e não havia nada"; null com a fonte
 // declarada quer dizer "não li". Sem essa diferença, a falha e a ausência chegam
-// ao agente com a mesma forma. A verificação de CI da estação 2 cobra o uso deste
+// ao agente com a mesma forma. A verificação de CI do bloco 2 cobra o uso deste
 // helper em todo catch de tool.
 //
 //   return { erros: null, ...semFonte("logs", erro) };

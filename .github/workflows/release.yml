@@ -1,6 +1,6 @@
 name: release
 
-# Uma tag v* publica as ferramentas da estação 3 compiladas para amd64 e arm64,
+# Uma tag v* publica as ferramentas do bloco 3 compiladas para amd64 e arm64,
 # com o SHA256SUMS que o preflight confere quando a máquina não tem Go 1.25.
 # Sem tag (workflow_dispatch), gera os mesmos pacotes como artefato e não publica nada.
 on:
@@ -50,4 +50,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/kit-linux-amd64.tar.gz dist/kit-linux-arm64.tar.gz dist/SHA256SUMS \
             --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" \
-            --notes "Ferramentas da estação 3 (servico, carga, comparar, assinante) para Linux amd64 e arm64. Sem Go 1.25 ou mais novo na máquina, o make preflight baixa o pacote da sua arquitetura e confere o SHA256SUMS."
+            --notes "Ferramentas do bloco 3 (servico, carga, comparar, assinante) para Linux amd64 e arm64. Sem Go 1.25 ou mais novo na máquina, o make preflight baixa o pacote da sua arquitetura e confere o SHA256SUMS."

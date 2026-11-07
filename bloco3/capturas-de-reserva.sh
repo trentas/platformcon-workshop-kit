@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gera as capturas de reserva da estação 3, para quem não tem Linux funcionando:
+# Gera as capturas de reserva do bloco 3, para quem não tem Linux funcionando:
 # v1-a, v2 e v1-b com as capabilities completas, v1-parcial só com
 # cap_bpf,cap_perfmon, e as três comparações em texto. Rode depois de um
 # make preflight que passou. Saída em capturas/prontas/<arch>/.

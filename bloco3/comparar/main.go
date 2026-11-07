@@ -1,4 +1,4 @@
-// Compara duas capturas do ptop da estação 3, por request.
+// Compara duas capturas do ptop do bloco 3, por request.
 //
 // Antes dos números, compara a instrumentação: se algum coletor tem estado ou
 // fonte diferente entre as duas capturas, a diferença nos números pode ser só a
@@ -27,7 +27,7 @@ import (
 	pb "github.com/trentas/ptop/pkg/streampb"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/trentas/platformcon-workshop-kit/estacao3/internal/histo"
+	"github.com/trentas/platformcon-workshop-kit/bloco3/internal/histo"
 )
 
 // sempre aparecem na tabela, mesmo sem mudança: são as que a v2 mexe.

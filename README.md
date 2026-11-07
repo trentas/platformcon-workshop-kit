@@ -2,15 +2,15 @@
 
 Kit do workshop da **PlatformCon São Paulo, 07/11/2026**. Do trace de uso à verificação no kernel, com MCP, CI e eBPF.
 
-São três estações:
+São três blocos:
 
-| Estação | O que se faz | Onde roda |
+| Bloco | O que se faz | Onde roda |
 |---|---|---|
 | 1. Agentes como usuários de um servidor MCP | O seu agente consulta um servidor de exemplo; os traces da sala viram rascunho de issue | No seu agente, contra um servidor nosso |
 | 2. Verificações de CI para código escrito por agentes | Demonstração | Telão |
 | 3. Comparação de versões com eBPF (ptop) | Captura de duas versões de um serviço e comparação contra o ruído | Na sua máquina Linux ou VM |
 
-> **Estado do kit:** as três estações estão escritas. A estação 3 foi testada de ponta a ponta (arm64, kernel 7.0). A estação 1 foi testada com sessões simuladas e com agentes Claude pelo túnel, e o avaliador contra o modelo (v1: sinal falso; v2: nenhum achado). Falta testar a estação 1 com outros agentes.
+> **Estado do kit:** os três blocos estão escritos. O bloco 3 foi testado de ponta a ponta (arm64, kernel 7.0). O bloco 1 foi testado com sessões simuladas e com agentes Claude pelo túnel, e o avaliador contra o modelo (v1: sinal falso; v2: nenhum achado). Falta testar o bloco 1 com outros agentes.
 
 ## Antes do workshop: o preflight
 
@@ -21,7 +21,7 @@ Você precisa de:
 - `sudo`, uma vez, para aplicar as capabilities no ptop;
 - git e make;
 - Go 1.25 ou mais novo é opcional: sem ele, o preflight baixa as ferramentas já compiladas da release do kit;
-- um agente de IA compatível com MCP (Claude Code, Cursor, VS Code, Gemini CLI, Codex…), para a estação 1.
+- um agente de IA compatível com MCP (Claude Code, Cursor, VS Code, Gemini CLI, Codex…), para o bloco 1.
 
 Clone o kit **na sua home, no disco da própria máquina ou VM**. Numa pasta compartilhada com o host, o `setcap` falha por falta de atributos estendidos. No `/tmp`, que costuma ser montado com `nosuid`, o `setcap` funciona e o kernel ignora as capabilities. O preflight acusa os dois casos. Depois rode:
 
@@ -41,7 +41,7 @@ sudo setcap cap_bpf,cap_perfmon,cap_sys_admin,cap_dac_read_search,cap_sys_ptrace
 
 `cap_sys_admin` é quase root na prática. Conceda numa VM de laboratório, ou rode sem ela e use `./bin/ptop --caps` para ver o que deixou de coletar. O [README do ptop](https://github.com/trentas/ptop) explica o que cada uma libera.
 
-## Estação 1: conectar o seu agente
+## Bloco 1: conectar o seu agente
 
 No dia, o servidor da sala fica em:
 
@@ -75,7 +75,7 @@ O serviço pagamentos teve erros na última hora? Use o servidor plataforma.
 
 Anote a resposta, sem corrigir nem insistir. Quando o servidor passar para a v2, abra outra sessão nova e faça a mesma pergunta. A configuração não muda.
 
-## Estação 3: comparação de versões com eBPF
+## Bloco 3: comparação de versões com eBPF
 
 O serviço tem duas versões. A `api` chama um `estoque` a cada request; a v1 reaproveita conexões (pool), a v2 abre uma conexão nova por request. O estoque simula 10 ms de trabalho.
 
@@ -142,7 +142,7 @@ Sem Linux funcionando, use as capturas de reserva no lugar das suas: `make compa
 - Uma métrica que não pôde ser medida aparece como `não medido`, nunca como zero.
 - Uma diferença é marcada quando passa o dobro da variação entre `v1-a` e `v1-b` e também um piso: 5% (ou 0,02 por request) nas syscalls e 10% na latência, porque o histograma de latência tem resolução de 5%.
 
-## Estação 1: o lado do instrutor
+## Bloco 1: o lado do instrutor
 
 O servidor de exemplo se chama `plataforma` e anuncia três tools: `listar_servicos`, `listar_deploys` e `buscar_erros`. Uma quarta, `status_fontes`, existe e fica oculta por padrão (`TOOLS_OCULTAS`; ver os resultados abaixo). A fonte de logs está fora do ar desde o início. Na v1, `buscar_erros` devolve `{"erros": []}`, como se não houvesse erro; na v2, devolve `{"erros": null, "fontes": {"logs": "indisponivel"}}`. Lista vazia quer dizer "li e não havia nada"; `null` com a fonte declarada quer dizer "não li".
 
@@ -159,7 +159,7 @@ make fumaca                   # teste de fumaça em portas próprias (3100 e 310
 - **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da resposta sem erros: parou ou procurou outra explicação (e, com `status_fontes` anunciada, conferiu a fonte). Ao lado, quantas receberam o aviso de logs não lidos. O número de quem parou só ganha destaque, com um selo de alerta que diz quantas pararam sem o aviso, quando alguma sessão parou sem tê-lo recebido: parar depois do aviso é a resposta certa. O visual é o tema claro do WhyStack, o mesmo do deck. Uma sessão conta como encerrada depois de 30 s sem chamada. Uma conexão MCP que atravessa a troca de versão (um chat novo no mesmo agente, sem reconectar) conta como uma sessão em cada versão. A página cresce ou encolhe para ocupar a tela sem rolar.
 - **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
 
-**Publicar o servidor para a sala.** O servidor roda na máquina de quem conduz. Só a porta do MCP sai para fora. O painel e as rotas de admin (`/admin/versao`, `/admin/traces`) escutam em `127.0.0.1`, numa porta separada (`PAINEL_PORT`, 3001), e não pedem senha. O painel consulta o servidor a cada 2 s: por um túnel com cota, meia sala com ele aberto esgotaria a cota no meio da estação. A troca de versão fica local porque nada que muda o servidor precisa estar na internet. Com o ngrok:
+**Publicar o servidor para a sala.** O servidor roda na máquina de quem conduz. Só a porta do MCP sai para fora. O painel e as rotas de admin (`/admin/versao`, `/admin/traces`) escutam em `127.0.0.1`, numa porta separada (`PAINEL_PORT`, 3001), e não pedem senha. O painel consulta o servidor a cada 2 s: por um túnel com cota, meia sala com ele aberto esgotaria a cota no meio do bloco. A troca de versão fica local porque nada que muda o servidor precisa estar na internet. Com o ngrok:
 
 ```bash
 make palco DOMINIO=nome.ngrok-free.dev TRACES=traces/sala-0711.jsonl   # túnel e servidor juntos; Ctrl-C derruba os dois
@@ -189,7 +189,7 @@ Com uma tool para conferir a fonte, os agentes testados contornaram o defeito; s
 
 Só agentes Claude foram testados até aqui.
 
-## Estação 2: verificações de CI para código escrito por agentes
+## Bloco 2: verificações de CI para código escrito por agentes
 
 ```bash
 make guardas
@@ -201,7 +201,7 @@ A guarda tem a sua própria guarda: o relatório falha se a varredura não leu n
 
 ## VMs reserva (lado do instrutor)
 
-`vm-reserva/cloud-init.yaml` sobe uma VM para a estação 3 em qualquer nuvem que aceite cloud-init (o campo user-data), com Ubuntu 24.04, 2 vCPU e 4 GB. Ela cria o usuário `kit`, com sudo e entrada por SSH com senha, clona o kit, roda o preflight com as ferramentas da release e se desliga sozinha 6 horas depois.
+`vm-reserva/cloud-init.yaml` sobe uma VM para o bloco 3 em qualquer nuvem que aceite cloud-init (o campo user-data), com Ubuntu 24.04, 2 vCPU e 4 GB. Ela cria o usuário `kit`, com sudo e entrada por SSH com senha, clona o kit, roda o preflight com as ferramentas da release e se desliga sozinha 6 horas depois.
 
 Cada VM precisa de uma senha própria, que o monitor entrega ao participante junto com o IP:
 
@@ -215,22 +215,22 @@ Até aqui, o arquivo só teve o schema validado (`cloud-init schema`). Ele ainda
 
 ## Release
 
-Uma tag `v*` dispara `.github/workflows/release.yml`: as ferramentas da estação 3 compiladas para amd64 e arm64 (`kit-linux-<arch>.tar.gz`) e o `SHA256SUMS` vão para a release, de onde o preflight as baixa quando não há Go. `make pacotes` gera os mesmos arquivos em `dist/`. Sem tag, o workflow roda sob demanda e deixa os pacotes como artefato, sem publicar.
+Uma tag `v*` dispara `.github/workflows/release.yml`: as ferramentas do bloco 3 compiladas para amd64 e arm64 (`kit-linux-<arch>.tar.gz`) e o `SHA256SUMS` vão para a release, de onde o preflight as baixa quando não há Go. `make pacotes` gera os mesmos arquivos em `dist/`. Sem tag, o workflow roda sob demanda e deixa os pacotes como artefato, sem publicar.
 
 ## Estrutura
 
 ```
 servidor/            servidor MCP de exemplo, gravador de trace, painel e simulador de sala
 avaliador/           rubrica e avaliador dos traces
-guardas/             a verificação de CI da estação 2 e os testes dela
-estacao3/servico     api e estoque, v1 e v2
-estacao3/carga       gerador de carga com log de contadores acumulados
-estacao3/comparar    comparação de duas capturas, por request, contra o ruído
-estacao3/assinante   cliente gRPC do stream do ptop, sem privilégio
-estacao3/capturas-de-reserva.sh   gera as capturas de capturas/prontas/<arch>/
-capturas/prontas/    capturas de reserva da estação 3, de arm64 e amd64
+guardas/             a verificação de CI do bloco 2 e os testes dela
+bloco3/servico       api e estoque, v1 e v2
+bloco3/carga         gerador de carga com log de contadores acumulados
+bloco3/comparar      comparação de duas capturas, por request, contra o ruído
+bloco3/assinante     cliente gRPC do stream do ptop, sem privilégio
+bloco3/capturas-de-reserva.sh   gera as capturas de capturas/prontas/<arch>/
+capturas/prontas/    capturas de reserva do bloco 3, de arm64 e amd64
 preflight.sh         checagem da máquina, instalação do ptop e captura de teste
-vm-reserva/          cloud-init das VMs reserva da estação 3
+vm-reserva/          cloud-init das VMs reserva do bloco 3
 ```
 
 ## Licença

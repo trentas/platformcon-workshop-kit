@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   node:
-    name: Estações 1 e 2 (Node 22.18)
+    name: Blocos 1 e 2 (Node 22.18)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -20,17 +20,17 @@ jobs:
           node-version: "22.18" # o mínimo que o README pede
           cache: npm
       - run: npm ci
-      - name: Guardas da estação 2
+      - name: Guardas do bloco 2
         run: make guardas
       - name: Sessões do painel e do avaliador
         run: npx vitest run servidor
       - name: Tipos
         run: npx tsc --noEmit
-      - name: Fumaça da estação 1 (servidor, simulador, troca de versão, avaliador sem modelo)
+      - name: Fumaça do bloco 1 (servidor, simulador, troca de versão, avaliador sem modelo)
         run: make fumaca
 
   go:
-    name: Estação 3 (Go)
+    name: Bloco 3 (Go)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -80,7 +80,7 @@ jobs:
           KIT_BINARIOS_URL=http://127.0.0.1:8765 make preflight
           grep -q 'ferramentas=release' preflight-resultado.txt
 
-  # Só sob demanda: as capturas de reserva da estação 3 numa VM amd64 limpa, pelo
+  # Só sob demanda: as capturas de reserva do bloco 3 numa VM amd64 limpa, pelo
   # mesmo script que gerou as de arm64. O artefato vai para capturas/prontas/amd64.
   capturas:
     name: Capturas de reserva (amd64, sob demanda)
@@ -93,7 +93,7 @@ jobs:
         with:
           go-version-file: go.mod
       - run: make preflight
-      - run: ./estacao3/capturas-de-reserva.sh
+      - run: ./bloco3/capturas-de-reserva.sh
       - run: cat capturas/prontas/amd64/comparar-*.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

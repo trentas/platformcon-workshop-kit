@@ -1,4 +1,4 @@
-// O avaliador da estação 1: lê os traces da sala e escreve um rascunho de issue.
+// O avaliador do bloco 1: lê os traces da sala e escreve um rascunho de issue.
 //
 //   node avaliador/avaliar.ts --traces traces/sala.jsonl [--versao v1] [--modelo claude-opus-5-5] [--seco]
 //   node avaliador/avaliar.ts --url http://127.0.0.1:3001/admin/traces   (os traces do servidor no ar)

@@ -15,7 +15,7 @@ export const buscarErros: Tool = {
       return { erros: await buscarLogsDeErro(args.servico as string, args.janela_min as number) };
     } catch (erro) {
       if (ctx.versao === "v1") {
-        // guarda:catch-vazio-proposital — este é o defeito da estação 1: a falha
+        // guarda:catch-vazio-proposital — este é o defeito do bloco 1: a falha
         // da fonte de logs chega ao agente como "nenhum erro encontrado".
         return { erros: [] };
       }

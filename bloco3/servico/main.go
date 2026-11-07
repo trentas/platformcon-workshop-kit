@@ -1,4 +1,4 @@
-// Serviço de exemplo da estação 3. O mesmo binário tem dois papéis:
+// Serviço de exemplo do bloco 3. O mesmo binário tem dois papéis:
 //
 //	-papel estoque   responde GET /estoque/{sku}; é o serviço consultado
 //	-papel api       responde GET /pedido e consulta o estoque a cada request

@@ -1,4 +1,4 @@
-// Servidor MCP de exemplo da estação 1 ("plataforma"), com o painel do telão.
+// Servidor MCP de exemplo do bloco 1 ("plataforma"), com o painel do telão.
 //
 // Na porta pública (PORT, a que vai para o túnel ou para o proxy):
 //   POST/GET/DELETE /mcp     o servidor MCP (Streamable HTTP, uma sessão por agente)
@@ -12,7 +12,7 @@
 //
 // O painel fica fora da porta pública porque ele consulta o servidor a cada 2 s,
 // e por um túnel com cota (o ngrok gratuito tem 20 mil requisições por mês) meia
-// sala com o painel aberto esgotaria a cota no meio da estação. As rotas de admin
+// sala com o painel aberto esgotaria a cota no meio do bloco. As rotas de admin
 // ficam junto dele porque o servidor roda na máquina de quem conduz: nada que
 // troca a versão precisa estar na internet, nem um token aparecer no telão.
 //
@@ -45,8 +45,8 @@ const SESSAO_OCIOSA_MS = 30 * 60_000;
 
 const estado: { versao: Versao } = { versao: process.env.VERSAO === "v2" ? "v2" : "v1" };
 // Tools que o servidor não anuncia. Por padrão, status_fontes: com ela, os agentes
-// testados conferiam a fonte e contornavam o defeito (15 de 15 sessões), e a
-// estação não teria o que mostrar. Sem ela, o agente só tem a resposta de
+// testados conferiam a fonte e contornavam o defeito (15 de 15 sessões), e o
+// bloco não teria o que mostrar. Sem ela, o agente só tem a resposta de
 // buscar_erros para decidir. TOOLS_OCULTAS= (vazio) anuncia todas.
 const OCULTAS = new Set((process.env.TOOLS_OCULTAS ?? "status_fontes").split(",").map((s) => s.trim()).filter(Boolean));
 const gravador = new Gravador(process.env.TRACES ?? "traces/sala.jsonl");
