@@ -119,9 +119,11 @@ versao:
 simular:
 	@node servidor/simular-sala.ts --url $${URL:-http://127.0.0.1:3000/mcp} --sessoes $${SESSOES:-12}
 
-# make avaliar VERSAO=v1 [SECO=1]
+# make avaliar VERSAO=v1 [SECO=1]: lê os traces do servidor no ar, pela porta do painel,
+# e por isso não depende do TRACES com que o servidor subiu. Com o servidor parado,
+# passe o arquivo: make avaliar VERSAO=v1 TRACES=traces/sala.jsonl
 avaliar:
-	@node avaliador/avaliar.ts --traces $${TRACES:-traces/sala.jsonl} --versao $${VERSAO:-v1} $(if $(SECO),--seco,)
+	@node avaliador/avaliar.ts $(if $(TRACES),--traces $(TRACES),--url http://$${PAINEL_HOST:-127.0.0.1}:$${PAINEL_PORT:-3001}/admin/traces) --versao $${VERSAO:-v1} $(if $(SECO),--seco,)
 
 # Teste de fumaça do bloco 1, em portas próprias (3100 e 3101): sessões simuladas
 # nas duas versões, a troca de versão pela porta local, a porta pública sem admin e

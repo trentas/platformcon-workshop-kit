@@ -8,7 +8,7 @@
 // recebe esse observado pronto e escreve só a classificação e a HIPÓTESE de
 // causa, que fica marcada como hipótese. Com --seco, nada vai ao modelo.
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { agrupar, ehVazioDeErros, type Sessao } from "../servidor/sessoes.ts";
 import { lerTraces, type LinhaTrace } from "../servidor/trace.ts";
@@ -32,11 +32,19 @@ const versaoRubrica = /versão:\s*(\S+)/.exec(rubrica)?.[1] ?? "?";
 async function carregar(): Promise<LinhaTrace[]> {
   const url = arg("url");
   if (url) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`GET ${url}: ${r.status} ${await r.text()}`);
+    const r = await fetch(url).catch(() => null);
+    if (!r) sair(`o servidor não respondeu em ${url}: suba o servidor (make palco ou make servidor) ou passe o arquivo com TRACES=`);
+    if (!r.ok) sair(`GET ${url}: ${r.status} ${await r.text()}`);
     return lerTraces(await r.text());
   }
-  return lerTraces(readFileSync(arg("traces", "traces/sala.jsonl"), "utf8"));
+  const arquivo = arg("traces", "traces/sala.jsonl");
+  if (!existsSync(arquivo)) sair(`${arquivo} não existe: o servidor só cria o arquivo na primeira chamada de tool`);
+  return lerTraces(readFileSync(arquivo, "utf8"));
+}
+
+function sair(mensagem: string): never {
+  console.error(mensagem);
+  process.exit(1);
 }
 
 // O observado: só contagens tiradas dos traces, cada uma conferível.

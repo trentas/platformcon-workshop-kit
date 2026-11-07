@@ -155,6 +155,8 @@ make avaliar VERSAO=v1 SECO=1 # só o observado, sem chamar o modelo
 make fumaca                   # teste de fumaça em portas próprias (3100 e 3101), sem chamar o modelo
 ```
 
+O `make avaliar` lê os traces do servidor no ar, pela porta do painel, seja qual for o `TRACES` com que ele subiu. Com o servidor parado, passe o arquivo: `make avaliar VERSAO=v1 TRACES=traces/sala.jsonl`.
+
 - **O trace** (`traces/sala.jsonl`) tem uma linha por chamada: tool, argumentos estruturados, status, quantidade de itens, fontes declaradas como não lidas, ordem e duração. Argumento de texto livre vira tamanho e hash. O servidor nunca vê o prompt nem a resposta do agente.
 - **O painel** agrupa as sessões pela sequência de tools e conta o que aconteceu depois da resposta sem erros: parou ou procurou outra explicação (e, com `status_fontes` anunciada, conferiu a fonte). Ao lado, quantas receberam o aviso de logs não lidos. O número de quem parou só ganha destaque, com um selo de alerta que diz quantas pararam sem o aviso, quando alguma sessão parou sem tê-lo recebido: parar depois do aviso é a resposta certa. O visual é o tema claro do WhyStack, o mesmo do deck. Uma sessão conta como encerrada depois de 30 s sem chamada. Uma conexão MCP que atravessa a troca de versão (um chat novo no mesmo agente, sem reconectar) conta como uma sessão em cada versão. A página cresce ou encolhe para ocupar a tela sem rolar.
 - **O avaliador** calcula o observado por código, a partir dos traces, e manda ao modelo só esse observado, as formas mais comuns e a [rubrica](avaliador/rubrica.md). O modelo devolve o sinal, a hipótese de causa e o critério de fechamento; o rascunho mantém os dois separados.
